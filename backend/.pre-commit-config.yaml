@@ -1,31 +1,60 @@
-# Pre-commit hooks for code quality
-# Install: pip install pre-commit && pre-commit install
+# Pre-commit hooks for StockPilot.
+#
+# Install once:      pip install pre-commit && pre-commit install
+# Run on all files:  pre-commit run --all-files
+# Run the test hook: pre-commit run --hook-stage manual backend-pytest
+#
+# The lint/format hooks mirror what CI enforces (ruff), so a local pass means a
+# green CI lint job.
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-json
+      - id: check-toml
       - id: check-added-large-files
-        args: ['--maxkb=500']
+        args: ["--maxkb=500"]
       - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
       - id: debug-statements
+      - id: detect-private-key
 
-  - repo: https://github.com/psf/black
-    rev: 24.8.0
+  # Ruff replaces black + isort + flake8. The rev is kept in step with the
+  # `ruff` pin in backend/requirements-dev.txt.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.7
     hooks:
-      - id: black
-        language_version: python3.11
+      - id: ruff
+        name: ruff (lint, autofix)
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format
+        name: ruff (format)
+        files: ^backend/
 
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
+  # Frontend hygiene runs through the project's own npm scripts so ESLint and
+  # Prettier config live in exactly one place.
+  - repo: local
     hooks:
-      - id: isort
+      - id: frontend-eslint
+        name: frontend eslint
+        entry: npm --prefix frontend run lint
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.(ts|tsx)$
+        stages: [manual]
 
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.1.1
-    hooks:
-      - id: flake8
-        args: ['--max-line-length=100', '--extend-ignore=E203,W503']
+      - id: backend-pytest
+        name: backend pytest
+        entry: python -m pytest
+        language: system
+        pass_filenames: false
+        files: ^backend/
+        stages: [manual]

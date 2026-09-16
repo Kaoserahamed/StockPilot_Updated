@@ -1,20 +1,43 @@
-fastapi
-uvicorn[standard]
-sqlalchemy>=2.0
-pymysql
-psycopg2-binary
-alembic
-pydantic>=2.11,<2.12
-pydantic-settings
-python-jose[cryptography]
+# =============================================================================
+# StockPilot backend - RUNTIME dependencies
+#
+# Every entry is pinned to an exact version so that a fresh clone installs the
+# same tree everywhere. For the full transitive closure (including indirect
+# dependencies) use requirements.lock.txt instead:
+#
+#     pip install -r requirements.lock.txt
+#
+# Test / lint / audit tooling lives in requirements-dev.txt.
+# =============================================================================
+
+# --- Web framework -----------------------------------------------------------
+fastapi==0.141.1
+uvicorn[standard]==0.35.0
+
+# --- Database ----------------------------------------------------------------
+SQLAlchemy==2.0.51
+alembic==1.16.5
+psycopg2-binary==2.9.12   # PostgreSQL driver (production)
+PyMySQL==1.1.2            # MySQL driver (legacy local installs)
+
+# --- Validation & settings ---------------------------------------------------
+pydantic==2.11.7
+pydantic-settings==2.15.0
+email-validator==2.2.0
+
+# --- Authentication ----------------------------------------------------------
+python-jose[cryptography]==3.5.0
 bcrypt==4.0.1
-python-multipart
-email-validator
-reportlab
-openpyxl
-google-generativeai
-python-json-logger
-slowapi
-pytest
-httpx
-pytest-asyncio
+python-multipart==0.0.32
+
+# --- Reporting & exports -----------------------------------------------------
+reportlab==5.0.0
+openpyxl==3.1.2
+
+# --- AI (optional at runtime: endpoints degrade gracefully without a key) -----
+google-generativeai==0.8.6
+
+# --- Observability & hardening ----------------------------------------------
+python-json-logger==4.2.0
+slowapi==0.1.9
+
