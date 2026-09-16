@@ -41,7 +41,7 @@ ignore = [
 "tests/*" = ["RUF059"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["app"]
+known-first-party = ["app", "tests"]
 
 [tool.ruff.format]
 quote-style = "double"
