@@ -10,7 +10,9 @@ CATEGORIES = "/api/v1/categories"
 def test_create_and_list_categories(client: TestClient) -> None:
     headers = factories.register_owner(client, email="cat1@test.com")
 
-    created = client.post(CATEGORIES, json={"name": "Grocery", "description": "Food"}, headers=headers)
+    created = client.post(
+        CATEGORIES, json={"name": "Grocery", "description": "Food"}, headers=headers
+    )
     assert created.status_code == 201, created.text
     body = created.json()
     assert body["name"] == "Grocery"
@@ -43,7 +45,9 @@ def test_update_category(client: TestClient) -> None:
     headers = factories.register_owner(client, email="cat5@test.com")
     category = factories.create_category(client, headers, name="Grocery")
 
-    resp = client.patch(f"{CATEGORIES}/{category['id']}", json={"name": "Groceries"}, headers=headers)
+    resp = client.patch(
+        f"{CATEGORIES}/{category['id']}", json={"name": "Groceries"}, headers=headers
+    )
     assert resp.status_code == 200, resp.text
     assert resp.json()["name"] == "Groceries"
 

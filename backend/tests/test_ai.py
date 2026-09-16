@@ -9,9 +9,7 @@ API = "/api/v1"
 
 def _shop_with_history(client: TestClient, email="ai@test.com"):
     shop = factories.seed_shop(client, email=email)
-    factories.checkout(
-        client, shop.headers, [{"product_id": shop.product_id, "quantity": 2}]
-    )
+    factories.checkout(client, shop.headers, [{"product_id": shop.product_id, "quantity": 2}])
     return shop
 
 
@@ -39,9 +37,7 @@ def test_insights_forecast_reorder_and_anomalies_shape(
     ).json()
     assert "products" in forecast
 
-    reorder = client.get(
-        f"{API}/ai/reorder-recommendations?days=30", headers=shop.headers
-    ).json()
+    reorder = client.get(f"{API}/ai/reorder-recommendations?days=30", headers=shop.headers).json()
     assert "recommendations" in reorder
 
     anomalies = client.get(f"{API}/ai/anomalies", headers=shop.headers).json()
@@ -85,7 +81,6 @@ def test_ai_endpoints_require_owner_or_manager(client: TestClient) -> None:
     shop = _shop_with_history(client, email="ai5@test.com")
     cashier = factories.create_cashier(client, shop.headers, email="ai-c@test.com")
     assert (
-        client.post(f"{API}/ai/chat", json={"question": "hi"}, headers=cashier).status_code
-        == 403
+        client.post(f"{API}/ai/chat", json={"question": "hi"}, headers=cashier).status_code == 403
     )
     assert client.get(f"{API}/ai/insights", headers=cashier).status_code == 403

@@ -130,6 +130,8 @@ def test_deactivated_user_cannot_use_their_credentials(client: TestClient) -> No
         LOGIN, json={"username": "emp-d@test.com", "password": factories.DEFAULT_PASSWORD}
     )
     assert resp.status_code in (401, 403)
+
+
 # --------------------------------------------------------------------------- #
 # Tokens
 # --------------------------------------------------------------------------- #

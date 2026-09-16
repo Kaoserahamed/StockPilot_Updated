@@ -46,8 +46,14 @@ def test_owner_can_create_an_additional_business(client: TestClient) -> None:
     assert scoped.json()["name"] == "Second Branch"
 
     # and data stays scoped to the selected business
-    client.post("/api/v1/products", json={"name": "Only In Branch", "sku": "BR-1"}, headers={**headers, "X-Business-Id": str(second_id)})
-    in_branch = client.get("/api/v1/products", headers={**headers, "X-Business-Id": str(second_id)}).json()
+    client.post(
+        "/api/v1/products",
+        json={"name": "Only In Branch", "sku": "BR-1"},
+        headers={**headers, "X-Business-Id": str(second_id)},
+    )
+    in_branch = client.get(
+        "/api/v1/products", headers={**headers, "X-Business-Id": str(second_id)}
+    ).json()
     in_original = client.get("/api/v1/products", headers=headers).json()
     assert [p["name"] for p in in_branch] == ["Only In Branch"]
     assert in_original == []
@@ -69,8 +75,16 @@ def test_manager_cannot_rename_the_business(client: TestClient) -> None:
     manager_headers = factories.login(client, "biz-manager@test.com")
 
     assert manager["role"] == "Manager"
-    assert client.patch(f"{BUSINESSES}/me", json={"name": "Hijacked"}, headers=manager_headers).status_code == 403
-    assert client.post(f"{BUSINESSES}", json={"name": "Mine"}, headers=manager_headers).status_code == 403
+    assert (
+        client.patch(
+            f"{BUSINESSES}/me", json={"name": "Hijacked"}, headers=manager_headers
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(f"{BUSINESSES}", json={"name": "Mine"}, headers=manager_headers).status_code
+        == 403
+    )
 
 
 def test_owner_can_upload_a_logo(client: TestClient) -> None:

@@ -7,9 +7,7 @@ from tests import factories
 API = "/api/v1"
 
 
-def test_audit_trail_records_catalogue_and_stock_changes(
-    client: TestClient, shop
-) -> None:
+def test_audit_trail_records_catalogue_and_stock_changes(client: TestClient, shop) -> None:
     factories.adjust_stock(client, shop.headers, shop.product_id, 3, reason="recount")
 
     logs = client.get(f"{API}/audit-logs", headers=shop.headers).json()
@@ -25,14 +23,10 @@ def test_audit_trail_records_catalogue_and_stock_changes(
 def test_audit_trail_filters_by_action_and_resource(client: TestClient, shop) -> None:
     factories.adjust_stock(client, shop.headers, shop.product_id, 1, reason="count")
 
-    by_action = client.get(
-        f"{API}/audit-logs?action=inventory.adjust", headers=shop.headers
-    ).json()
+    by_action = client.get(f"{API}/audit-logs?action=inventory.adjust", headers=shop.headers).json()
     assert by_action and all(row["action"] == "inventory.adjust" for row in by_action)
 
-    by_resource = client.get(
-        f"{API}/audit-logs?resource=product", headers=shop.headers
-    ).json()
+    by_resource = client.get(f"{API}/audit-logs?resource=product", headers=shop.headers).json()
     assert all(row["resource"] == "product" for row in by_resource)
 
 
@@ -48,7 +42,9 @@ def test_audit_trail_is_tenant_scoped(client: TestClient) -> None:
     second = factories.seed_shop(client, email="audit-b@test.com")
     factories.adjust_stock(client, first.headers, first.product_id, 4, reason="mine")
 
-    other_ids = {row["id"] for row in client.get(f"{API}/audit-logs", headers=second.headers).json()}
+    other_ids = {
+        row["id"] for row in client.get(f"{API}/audit-logs", headers=second.headers).json()
+    }
     mine_ids = {row["id"] for row in client.get(f"{API}/audit-logs", headers=first.headers).json()}
     assert mine_ids.isdisjoint(other_ids)
     assert mine_ids
