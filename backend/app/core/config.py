@@ -1,7 +1,16 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Typed application configuration.
+
+    Values come from the process environment first, then from `.env` in the
+    working directory. Unrelated shell variables are ignored so startup never
+    fails because of an unrelated exported variable.
+    """
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     app_name: str = "StockPilot - Inventory & POS SaaS"
     # Database connection string - MUST be set via environment variable
     # MySQL ex: mysql+pymysql://user:password@localhost:3306/dbname
@@ -33,9 +42,16 @@ class Settings(BaseSettings):
     # --- Environment ---
     environment: str = "development"  # development, staging, production
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    # --- AI (Phase 5) ---
+    # An empty key disables AI features: the endpoints then return the
+    # deterministic analytics answer instead of calling out to Gemini.
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-1.5-flash"
+
+    @property
+    def ai_enabled(self) -> bool:
+        """True when a Gemini API key has been configured."""
+        return bool(self.gemini_api_key.strip())
 
 
 settings = Settings()
