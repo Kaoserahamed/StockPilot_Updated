@@ -39,7 +39,6 @@ def reorder_recommendations(db: Session, business_id: int, forecast_days: int = 
 
 def detect_anomalies(db: Session, business_id: int) -> dict:
     """FR-35: z-score outliers on daily revenue + oversized single sales."""
-    from sqlalchemy import func as _f
 
     from app.models.sales import Sale
     from app.services import finance_service as ff
