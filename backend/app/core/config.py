@@ -62,4 +62,4 @@ class Settings(BaseSettings):
         return bool(self.gemini_api_key.strip())
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]  # pydantic-settings injects from env

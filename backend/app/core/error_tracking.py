@@ -38,7 +38,9 @@ MAX_RECENT_REPORTS = 50
 # Report at most this many occurrences of one fingerprint to the log sink.
 LOG_AFTER_OCCURRENCES = 1
 
-_actor_context: ContextVar[dict[str, Any]] = ContextVar("stockpilot_actor_context", default={})
+_actor_context: ContextVar[dict[str, Any] | None] = ContextVar(
+    "stockpilot_actor_context", default=None
+)
 
 
 @dataclass(frozen=True)
@@ -147,13 +149,14 @@ class ErrorTracker:
         captured after the response (e.g. in a test that drives a request
         and then captures) still correlates with that route.
         """
+        ctx = _actor_context.get() or {}
         token = _actor_context.set(
-            {**_actor_context.get(), "method": method, "path": path, "request_id": request_id}
+            {**ctx, "method": method, "path": path, "request_id": request_id}
         )
         try:
             yield
         finally:
-            snapshot = dict(_actor_context.get())
+            snapshot = dict(_actor_context.get() or {})
             merged = dict(getattr(self, "last_route", None) or {})
             merged.update({k: v for k, v in snapshot.items() if v is not None})
             self.last_route = merged
@@ -255,11 +258,10 @@ def get_error_tracker() -> ErrorTracker:
 
 def bind_actor(*, user_id: int | None, business_id: int | None) -> None:
     """Bind the actor into the ambient context (called by ``get_current_context``)."""
-    _actor_context.set(
-        {**_actor_context.get(), "user_id": user_id, "business_id": business_id}
-    )
+    current = _actor_context.get()
+    _actor_context.set({**(current or {}), "user_id": user_id, "business_id": business_id})
 
 
 def current_context() -> Mapping[str, Any]:
     """Read-only snapshot of the ambient request context (for tests/debugging)."""
-    return dict(_actor_context.get())
+    return dict(_actor_context.get() or {})

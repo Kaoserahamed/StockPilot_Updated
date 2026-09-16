@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-import app.models
+from app import models as _models  # noqa: F401  (importing registers every SQLAlchemy mapper)
 from app.api import health as health_api
 from app.api.v1 import ai as ai_api
 from app.api.v1 import (
