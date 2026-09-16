@@ -1,0 +1,23 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "env": {
+    "browser": true,
+    "es2022": true,
+    "node": true
+  },
+  "rules": {
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-unused-vars": "off",
+    "prefer-const": "error",
+    "eqeqeq": ["error", "smart"],
+    "no-var": "error"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "out/",
+    "next-env.d.ts",
+    "*.config.js",
+    "*.config.mjs"
+  ]
+}

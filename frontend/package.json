@@ -6,12 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "typecheck": "tsc --noEmit",
+    "audit": "node scripts/audit-gate.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@tanstack/react-query": "^5.51.0",
     "axios": "^1.7.2",
-    "next": "14.2.5",
+    "next": "14.2.35",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.12.7"
@@ -21,10 +26,17 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.5",
-    "postcss": "^8.4.39",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "14.2.35",
+    "postcss": "^8.5.28",
+    "prettier": "^3.3.3",
     "tailwindcss": "^3.4.7",
     "typescript": "^5.5.3"
+  },
+  "overrides": {
+    "glob": "^10.5.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
