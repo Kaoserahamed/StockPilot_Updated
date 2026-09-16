@@ -50,7 +50,7 @@ def setup_logging(level: str = "INFO", json_format: bool = True) -> None:
         formatter = jsonlogger.JsonFormatter(fmt, datefmt="%Y-%m-%dT%H:%M:%S%z")
     else:
         fmt = "[%(asctime)s] %(levelname)-8s %(name)s: %(message)s"
-        formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
+                formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")  # type: ignore[assignment]
 
     handler.setFormatter(formatter)
     root.addHandler(handler)
