@@ -64,7 +64,6 @@ test-backend: ## pytest (backend, in-memory SQLite)
 .PHONY: test-frontend
 test-frontend: ## vitest run (frontend)
 	cd $(FRONTEND) && npm test -- --run
-
 .PHONY: test-cov
 test-cov: ## pytest with a terminal coverage report
 	cd $(BACKEND) && python -m pytest --cov=app --cov-report=term-missing
