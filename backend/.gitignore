@@ -24,6 +24,9 @@ ENV/
 uploads/products/*
 !uploads/products/.gitkeep
 
+# Allow logo uploads to be tracked (needed for product branding)
+uploads/logos/
+
 # Testing
 .pytest_cache/
 .coverage

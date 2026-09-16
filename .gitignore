@@ -89,3 +89,7 @@ logs/
 # ---------- Uploads (runtime user content) ----------
 backend/uploads/products/*
 !backend/uploads/products/.gitkeep
+
+# Allow logo uploads to be tracked (needed for product branding)
+uploads/logos/
+backend/uploads/logos/
