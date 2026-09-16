@@ -22,7 +22,7 @@ def _check(ctx: Context):
 @router.get("", response_model=list[ExpenseOut])
 def list_all(
     ctx: Context = Depends(get_current_context),
-    db: Session = Depends(get_db),  # noqa: ARG001 - guard below uses ctx only
+    db: Session = Depends(get_db),
     category: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
