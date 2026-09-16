@@ -1,0 +1,37 @@
+# Normalise line endings so contributors on Windows/macOS/Linux produce identical diffs.
+* text=auto eol=lf
+
+# Explicit types
+*.py        text eol=lf
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.jsx       text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.css       text eol=lf
+*.html      text eol=lf
+*.sh        text eol=lf
+*.ini       text eol=lf
+*.toml      text eol=lf
+
+# Windows-only scripts keep CRLF
+*.bat       text eol=crlf
+*.ps1       text eol=crlf
+
+# Binary assets must never be normalised
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.webp      binary
+*.pdf       binary
+*.woff      binary
+*.woff2     binary
+
+# Keep lockfiles out of language stats / treat as generated
+package-lock.json  linguist-generated=true
+requirements.lock.txt linguist-generated=true
