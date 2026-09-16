@@ -11,6 +11,10 @@ DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_NAME:-stockpilot}"
 DB_USER="${DB_USER:-stockpilot}"
 
+# Fail fast: no default password is provided (see backup-db.sh).
+: "${DB_PASSWORD:?DB_PASSWORD is not set. Export it before running this script; no default password is provided.}"
+export PGPASSWORD="${DB_PASSWORD}"
+
 if [ -z "${1:-}" ]; then
   echo "Usage: $0 <backup_file>"
   exit 1
@@ -32,7 +36,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 echo "[restore] Restoring from ${BACKUP_FILE}..."
-gunzip -c "$BACKUP_FILE" | PGPASSWORD="${DB_PASSWORD:-changeme}" pg_restore \
+gunzip -c "$BACKUP_FILE" | pg_restore \
   -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" \
   --clean --if-exists --no-owner --no-privileges \
   -d "$DB_NAME" -
