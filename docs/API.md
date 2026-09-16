@@ -79,56 +79,51 @@ supported for 6 months with warnings in response headers.
 
 ---
 
-## Endpoints
+## Endpoints (mounted under `/api/v1`)
 
-### Authentication
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/auth/register` | Create account + business |
-| POST | `/auth/login` | Login, get tokens |
-| POST | `/auth/refresh` | Refresh access token |
-| POST | `/auth/logout` | Logout (client discards) |
-| GET | `/auth/me` | Current user info |
+Contract test `backend/tests/test_api_contract.py` fails on rename/drop.
+Probes: `GET /health`, `GET /health/live`, `GET /health/ready` (DB probe,
+`503` when down), `GET /health/detailed`, `GET /` (metadata).
 
-### Products
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/products` | List (paginated, filterable) |
-| POST | `/products` | Create product |
-| GET | `/products/{id}` | Get single |
-| PATCH | `/products/{id}` | Update |
-| POST | `/products/{id}/deactivate` | Soft delete |
-| POST | `/products/{id}/activate` | Reactivate |
+### Auth & tenancy
+`POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`,
+`POST /auth/logout`, `GET /auth/me`, `POST /auth/forgot-password`,
+`POST /auth/reset-password`, `GET /businesses/me`, `POST /businesses`,
+`PATCH /businesses/me`, `POST /businesses/me/logo`, `GET /employees`,
+`POST /employees`, `PATCH /employees/{id}/role`,
+`POST /employees/{id}/activate`, `POST /employees/{id}/deactivate`,
+`POST /employees/{id}/reset-password`, `DELETE /employees/{id}`.
 
-### Sales
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/sales/checkout` | Create sale |
-| GET | `/sales` | List sales |
-| GET | `/sales/{id}` | Get sale details |
-| POST | `/sales/{id}/cancel` | Cancel + restock |
-| GET | `/pos/search` | POS product search |
+### Catalogue & parties
+`GET|POST /categories`, `PATCH /categories/{id}`,
+`POST /categories/{id}/deactivate`, `DELETE /categories/{id}`,
+`GET|POST /products`, `GET|PATCH /products/{id}`,
+`POST /products/{id}/deactivate`, `POST /products/{id}/activate`,
+`POST /products/{id}/image`, `GET|POST /suppliers`,
+`PATCH /suppliers/{id}`, `POST /suppliers/{id}/deactivate`,
+`GET /suppliers/{id}/purchases`, `GET|POST /customers`,
+`PATCH /customers/{id}`, `GET /customers/{id}/sales`.
 
-### Inventory
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/inventory/overview` | Stock overview |
-| GET | `/inventory/low-stock` | Low stock alerts |
-| POST | `/inventory/adjust` | Stock adjustment |
-| POST | `/inventory/adjust-price` | Price change |
+### Inventory & trading
+`GET /inventory/overview`, `GET /inventory/low-stock`,
+`GET /inventory/out-of-stock`, `GET /inventory/transactions`,
+`POST /inventory/adjust`, `POST /inventory/adjust-price`,
+`GET /inventory/price-adjustments`, `GET|POST /purchases`,
+`GET /purchases/{id}`, `POST /purchases/{id}/pay`,
+`POST /purchases/{id}/cancel`, `GET /pos/search`, `GET /sales`,
+`POST /sales/checkout`, `GET /sales/{id}`, `POST /sales/{id}/cancel`,
+`GET /invoices/{id}`, `GET /invoices/{id}/pdf`, `GET|POST /returns`.
 
-### Finance
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/dashboard` | Dashboard metrics |
-| GET | `/analytics/top-products` | Best sellers |
-| GET | `/analytics/customer-stats` | Customer analytics |
-
-### AI
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/ai/chat` | Ask AI assistant |
-| GET | `/ai/insights` | Get insights |
+### Finance, reporting & platform
+`GET|POST /expenses`, `PATCH|DELETE /expenses/{id}`,
+`GET /finance/revenue`, `GET /finance/cogs`, `GET /finance/profit`,
+`GET /dashboard`, `GET /analytics/products`, `GET /analytics/customers`,
+`GET /analytics/suppliers`, `GET /reports/sales|inventory|purchases|expenses|profit`
+(`format=json/csv/xlsx/pdf`), `GET /reports/profit/pdf`, `GET|PATCH /settings`,
+`GET|PATCH /subscription`, `POST /ai/chat`, `GET /ai/insights`,
+`GET /ai/forecast`, `GET /ai/reorder-recommendations`, `GET /ai/anomalies`,
+`POST /ai/summarize`, `GET /ai/recommendations`,
+`PATCH /ai/recommendations/{id}`, `GET /audit-logs`.
 
 ---
 

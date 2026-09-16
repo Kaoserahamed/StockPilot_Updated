@@ -1,73 +1,88 @@
 'use client';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from './api';
 
-type User = {
-  id: number;
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  is_active: boolean;
-};
-type Ctx = {
-  user: User | null;
+import type { AuthUser } from '@/types';
+import * as authService from '@/services/auth';
+import { clearSession, getToken, setToken } from './session';
+
+interface RegisterInput {
+  owner_name: string;
+  business_name: string;
+  password: string;
+  email?: string;
+  phone?: string;
+}
+
+interface Ctx {
+  user: AuthUser | null;
   loading: boolean;
-  login(u: string, p: string): Promise<void>;
-  register(payload: any): Promise<void>;
-  logout(): void;
+  login(username: string, password: string): Promise<void>;
+  register(payload: RegisterInput): Promise<void>;
+  logout(): Promise<void>;
   refresh(): Promise<void>;
-};
+}
 
-const AuthCtx = createContext<Ctx>({} as any);
-export const useAuth = () => useContext(AuthCtx);
+const AuthCtx = createContext<Ctx | null>(null);
+
+export function useAuth(): Ctx {
+  const ctx = useContext(AuthCtx);
+  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
+  return ctx;
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const refresh = async () => {
-    const t = typeof window !== 'undefined' ? localStorage.getItem('pos_token') : null;
-    if (!t) {
+  const refresh = useCallback(async () => {
+    if (!getToken()) {
       setUser(null);
       setLoading(false);
       return;
     }
     try {
-      const r = await api.get('/auth/me');
-      setUser(r.data);
+      setUser(await authService.me());
     } catch {
       setUser(null);
-      localStorage.removeItem('pos_token');
+      clearSession();
     }
     setLoading(false);
-  };
-
-  useEffect(() => {
-    refresh();
   }, []);
 
-  const login = async (username: string, password: string) => {
-    const r = await api.post('/auth/login', { username, password });
-    localStorage.setItem('pos_token', r.data.access_token);
-    await refresh();
-    router.push('/dashboard');
-  };
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
-  const register = async (payload: any) => {
-    await api.post('/auth/register', payload);
-    await login(payload.email || payload.phone, payload.password);
-  };
+  const login = useCallback(
+    async (username: string, password: string) => {
+      const tokens = await authService.login(username, password);
+      setToken(tokens.access_token);
+      await refresh();
+      router.push('/dashboard');
+    },
+    [refresh, router]
+  );
 
-  const logout = async () => {
+  const register = useCallback(
+    async (payload: RegisterInput) => {
+      await authService.register(payload);
+      await login(payload.email || payload.phone || '', payload.password);
+    },
+    [login]
+  );
+
+  const logout = useCallback(async () => {
     try {
-      await api.post('/auth/logout');
-    } catch {}
-    localStorage.removeItem('pos_token');
+      await authService.logout();
+    } catch {
+      // A failed logout must still clear the local session.
+    }
+    clearSession();
     setUser(null);
     router.push('/login');
-  };
+  }, [router]);
 
   return (
     <AuthCtx.Provider value={{ user, loading, login, register, logout, refresh }}>

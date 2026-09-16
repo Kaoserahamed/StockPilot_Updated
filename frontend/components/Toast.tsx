@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 
 type ToastTone = 'success' | 'error' | 'info' | 'warning';
 type Toast = { id: number; message: string; tone: ToastTone };

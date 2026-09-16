@@ -6,7 +6,7 @@ import { useFormValidation } from '../hooks/useFormValidation';
 describe('useFormValidation', () => {
   it('flags missing required fields and clears them', () => {
     const { result } = renderHook(() =>
-      useFormValidation({ email: { required: true, message: 'Email needed' } }),
+      useFormValidation({ email: { required: true, message: 'Email needed' } })
     );
 
     let valid = true;
@@ -28,7 +28,7 @@ describe('useFormValidation', () => {
         password: { required: true, minLength: 6 },
         code: { maxLength: 4 },
         email: { pattern: /^[^@\s]+@[^@\s]+\.[^@\s]+$/ },
-      }),
+      })
     );
 
     let valid = true;
@@ -45,7 +45,7 @@ describe('useFormValidation', () => {
 
   it('validates a single field without touching the rest', () => {
     const { result } = renderHook(() =>
-      useFormValidation({ name: { required: true }, other: { required: true } }),
+      useFormValidation({ name: { required: true }, other: { required: true } })
     );
 
     act(() => {

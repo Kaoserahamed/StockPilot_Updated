@@ -1,5 +1,5 @@
 'use client';
-import { Component, ReactNode } from 'react';
+import React, { Component, ReactNode } from 'react';
 
 type Props = { children: ReactNode; fallback?: ReactNode };
 type State = { hasError: boolean; error: Error | null };
