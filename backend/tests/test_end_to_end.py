@@ -74,9 +74,7 @@ def test_full_shop_lifecycle(client: TestClient) -> None:
     reports = client.get(f"{API}/reports/sales?preset=all", headers=headers)
     assert reports.status_code == 200
 
-    chat = client.post(
-        f"{API}/ai/chat", json={"question": "How are we doing?"}, headers=headers
-    )
+    chat = client.post(f"{API}/ai/chat", json={"question": "How are we doing?"}, headers=headers)
     assert chat.status_code == 200
     assert chat.json()["answer"]
 

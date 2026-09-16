@@ -9,9 +9,7 @@ API = "/api/v1"
 
 def _trading_shop(client: TestClient, email="fin@test.com"):
     shop = factories.seed_shop(client, email=email)
-    factories.checkout(
-        client, shop.headers, [{"product_id": shop.product_id, "quantity": 2}]
-    )
+    factories.checkout(client, shop.headers, [{"product_id": shop.product_id, "quantity": 2}])
     factories.create_expense(client, shop.headers, category="rent", amount=50)
     return shop
 
@@ -55,19 +53,13 @@ def test_product_customer_and_supplier_analytics(client: TestClient) -> None:
         customer_id=shop.customer_id,
     )
 
-    products = client.get(
-        f"{API}/analytics/products?preset=all", headers=shop.headers
-    ).json()
+    products = client.get(f"{API}/analytics/products?preset=all", headers=shop.headers).json()
     assert products["best_sellers"]
 
-    customers = client.get(
-        f"{API}/analytics/customers?preset=all", headers=shop.headers
-    ).json()
+    customers = client.get(f"{API}/analytics/customers?preset=all", headers=shop.headers).json()
     assert customers["top_customers"]
 
-    suppliers = client.get(
-        f"{API}/analytics/suppliers?preset=all", headers=shop.headers
-    ).json()
+    suppliers = client.get(f"{API}/analytics/suppliers?preset=all", headers=shop.headers).json()
     assert suppliers
 
 
@@ -77,20 +69,14 @@ def test_reports_json_csv_excel_and_pdf(client: TestClient) -> None:
         json_body = client.get(f"{API}/reports/{kind}?preset=all", headers=shop.headers)
         assert json_body.status_code == 200, json_body.text
 
-        csv = client.get(
-            f"{API}/reports/{kind}?preset=all&format=csv", headers=shop.headers
-        )
+        csv = client.get(f"{API}/reports/{kind}?preset=all&format=csv", headers=shop.headers)
         assert csv.status_code == 200
         assert "text/csv" in csv.headers["content-type"]
 
-        xlsx = client.get(
-            f"{API}/reports/{kind}?preset=all&format=xlsx", headers=shop.headers
-        )
+        xlsx = client.get(f"{API}/reports/{kind}?preset=all&format=xlsx", headers=shop.headers)
         assert xlsx.status_code == 200
 
-        pdf = client.get(
-            f"{API}/reports/{kind}?preset=all&format=pdf", headers=shop.headers
-        )
+        pdf = client.get(f"{API}/reports/{kind}?preset=all&format=pdf", headers=shop.headers)
         assert pdf.status_code == 200
         assert pdf.content.startswith(b"%PDF")
 

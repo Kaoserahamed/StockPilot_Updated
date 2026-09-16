@@ -99,17 +99,14 @@ def test_businesses_are_fully_isolated_between_tenants(client: TestClient) -> No
         for p in client.get(f"{API}/products", headers=second.headers).json()
     )
     assert (
-        client.get(f"{API}/products/{first.product_id}", headers=second.headers).status_code
-        == 404
+        client.get(f"{API}/products/{first.product_id}", headers=second.headers).status_code == 404
     )
 
     # sales isolation
     sale = factories.checkout(
         client, first.headers, [{"product_id": first.product_id, "quantity": 1}]
     )
-    assert (
-        client.get(f"{API}/sales/{sale['id']}", headers=second.headers).status_code == 404
-    )
+    assert client.get(f"{API}/sales/{sale['id']}", headers=second.headers).status_code == 404
 
     # cross-tenant purchase/checkout with a foreign product id is rejected
     cross_purchase = client.post(
@@ -132,8 +129,6 @@ def test_businesses_are_fully_isolated_between_tenants(client: TestClient) -> No
 
 def test_second_business_profile_can_be_created(client: TestClient) -> None:
     headers = factories.register_owner(client, email="multi@test.com")
-    resp = client.post(
-        f"{API}/businesses", json={"name": "Second Branch"}, headers=headers
-    )
+    resp = client.post(f"{API}/businesses", json={"name": "Second Branch"}, headers=headers)
     assert resp.status_code == 201, resp.text
     assert resp.json()["name"] == "Second Branch"
