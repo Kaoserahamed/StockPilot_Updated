@@ -274,6 +274,19 @@ cd E:\B\StockPilot_Updated\frontend; npm ci; npm run lint; npx tsc --noEmit; npm
 | 6 | 2026-09-15 | 40d0aa9 | fix(backend): portable SQLite/Postgres trends, deactivation guard, expense RBAC, error correlation | M5.1, M5.2 | (regression fix on error_tracking tests) |
 | 7 | 2026-09-15 | 1e2bc61 | test(frontend): vitest alias, React runtime imports, session/setup, coverage script | M6.4, M6.8, M1.12 | components.test.tsx, session.test.ts, pages.test.ts |
 | 8 | 2026-09-15 | _(pending)_ | chore(repo): add .pre-commit-config.yaml + update implementation plan | M1.12, M8.5-M8.6 | _n/a_ |
+| 9 | 2026-09-16 | e409a90 | fix(backend): add type annotations for pydantic-settings compatibility | M5.1 | _n/a_ |
+| 10 | 2026-09-16 | dfed169 | fix(backend): correct AI service import for offline mode | M5.2 | _n/a_ |
+| 11 | 2026-09-16 | abb1629 | fix(backend): minor adjustments to audit and expenses endpoints | M5.1 | _n/a_ |
+| 12 | 2026-09-16 | 44d0c34 | fix(backend): logging configuration adjustments | M5.3 | _n/a_ |
+| 13 | 2026-09-16 | 8552230 | test(backend): fix test infrastructure for error tracking and health checks | M3, M4 | test_health.py, test_error_tracking.py |
+| 14 | 2026-09-16 | 1aa9eb9 | test(backend): update tests for AI, API contract, audit, auth, businesses, and categories | M4 | test_ai.py, test_api_contract.py, test_audit.py, test_auth.py, test_businesses.py, test_categories.py |
+| 15 | 2026-09-16 | b9300b3 | test(backend): update employee RBAC, E2E, and finance report tests | M4 | test_employees_rbac.py, test_end_to_end.py, test_finance_reports.py |
+| 16 | 2026-09-16 | 3e2be7d | test(backend): update inventory, parties, and products tests | M4 | test_inventory.py, test_parties.py, test_products.py |
+| 17 | 2026-09-16 | 858f264 | test(backend): update purchases, returns, sales/pos, and settings/subscription tests | M4 | test_purchases.py, test_returns.py, test_sales_pos.py, test_settings_subscription.py |
+| 18 | 2026-09-16 | 1def402 | docs: update implementation plan with latest progress | M8 | _n/a_ |
+| 19 | 2026-09-16 | f9e6fb1 | chore(repo): add pre-commit configuration for code quality | M1.12, M8.5 | _n/a_ |
+| 20 | 2026-09-16 | 760b1b5 | chore: update gitignore to include logo uploads | M8 | _n/a_ |
+| 21 | 2026-09-16 | 6d936ef | chore: add initial logo uploads | M8 | _n/a_ |
 
 ---
 
