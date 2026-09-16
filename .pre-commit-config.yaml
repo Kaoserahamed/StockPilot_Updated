@@ -1,0 +1,47 @@
+# =============================================================================
+# StockPilot - pre-commit hooks
+#
+# Install once after cloning:
+#   pip install -r backend/requirements-dev.txt      # pulls pre-commit
+#   pre-commit install
+#
+# Hooks below mirror the exact commands CI runs (see Makefile and
+# .github/workflows/ci.yml) so a commit failure == a CI failure.
+# =============================================================================
+repos:
+  # Ruff: linting + import sort + formatting in a single tool
+  # (replaces black, isort and flake8 - see M1.12)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.7          # matches ruff==0.16.7 in backend/requirements-dev.txt
+    hooks:
+      - id: ruff
+        args: [check, --fix]
+        files: ^backend/(app|tests)/.*\.py$
+      - id: ruff-format
+        files: ^backend/(app|tests)/.*\.py$
+
+  # mypy: static type-checking on the application code
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.1           # matches mypy==2.3.1 in backend/requirements-dev.txt
+    hooks:
+      - id: mypy
+        files: ^backend/app/.*\.py$
+        additional_dependencies: []
+        args: [--ignore-missing-imports, --no-implicit-optional]
+
+  # Basic file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+        files: \.(yml|yaml)$
+      - id: check-toml
+        files: \.toml$
+      - id: end-of-file-fixer
+        exclude: \.(md|mdx|txt|rst|toml|yaml|yml|json|lock)$
+      - id: trailing-whitespace
+        exclude: \.(md|mdx|lock|png|jpg|jpeg|gif|svg|ico)$
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: check-merge-conflict
+      - id: check-case-conflict
