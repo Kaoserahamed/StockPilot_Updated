@@ -1,4 +1,5 @@
 import io
+
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
@@ -55,14 +56,20 @@ def build_invoice_pdf(data: dict) -> bytes:
     c.line(15 * mm, y, w - 15 * mm, y)
     y -= 6 * mm
     c.setFont("Helvetica", 10)
-    for label, val in [("Subtotal", data.get("subtotal")), ("Discount", data.get("discount_amount")),
-                       (f"Tax ({data.get('tax_percent') or 0}%)", data.get("tax_amount")),
-                       ("Total", data.get("total_amount")), ("Paid", data.get("paid_amount"))]:
+    for label, val in [
+        ("Subtotal", data.get("subtotal")),
+        ("Discount", data.get("discount_amount")),
+        (f"Tax ({data.get('tax_percent') or 0}%)", data.get("tax_amount")),
+        ("Total", data.get("total_amount")),
+        ("Paid", data.get("paid_amount")),
+    ]:
         c.drawRightString(150 * mm, y, str(label) + ":")
         c.drawRightString(185 * mm, y, f"{float(val or 0):.2f}")
         y -= 5.5 * mm
     c.setFont("Helvetica", 9)
-    c.drawString(15 * mm, 15 * mm, f"Payment: {data.get('payment_method')} ({data.get('payment_status')})")
+    c.drawString(
+        15 * mm, 15 * mm, f"Payment: {data.get('payment_method')} ({data.get('payment_status')})"
+    )
     c.drawRightString(w - 15 * mm, 15 * mm, "Thank you for your business!")
     c.showPage()
     c.save()

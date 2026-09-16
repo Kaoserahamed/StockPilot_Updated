@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from app.core.deps import Context, get_current_context
 from app.db.session import get_db
 from app.models.business import Business
@@ -9,11 +10,16 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 def _to_out(biz: Business) -> SettingsOut:
-    return SettingsOut(currency=biz.currency or "BDT", tax_rate=biz.tax_rate or 0.0,
-                       invoice_format=biz.invoice_format or "INV-{yyyy}-{seq:04d}",
-                       min_stock_default=biz.min_stock_default or 0,
-                       business_name=biz.name, address=biz.address,
-                       phone=biz.phone, email=biz.email)
+    return SettingsOut(
+        currency=biz.currency or "BDT",
+        tax_rate=biz.tax_rate or 0.0,
+        invoice_format=biz.invoice_format or "INV-{yyyy}-{seq:04d}",
+        min_stock_default=biz.min_stock_default or 0,
+        business_name=biz.name,
+        address=biz.address,
+        phone=biz.phone,
+        email=biz.email,
+    )
 
 
 @router.get("", response_model=SettingsOut)
@@ -26,8 +32,11 @@ def get_settings(ctx: Context = Depends(get_current_context), db: Session = Depe
 
 
 @router.patch("", response_model=SettingsOut)
-def update_settings(payload: SettingsUpdate, ctx: Context = Depends(get_current_context),
-                    db: Session = Depends(get_db)):
+def update_settings(
+    payload: SettingsUpdate,
+    ctx: Context = Depends(get_current_context),
+    db: Session = Depends(get_db),
+):
     """FR-28.3: owners update settings; FR-28.4 applied at checkout/invoice time."""
     if ctx.role != "Owner":
         raise HTTPException(status_code=403, detail="Only Owner can update settings")

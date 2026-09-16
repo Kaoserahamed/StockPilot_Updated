@@ -1,13 +1,13 @@
 import enum
 
 
-class Role(str, enum.Enum):
+class Role(enum.StrEnum):
     OWNER = "Owner"
     MANAGER = "Manager"
     CASHIER = "Cashier"
 
 
-class InventoryTxType(str, enum.Enum):
+class InventoryTxType(enum.StrEnum):
     PURCHASE = "purchase"
     SALE = "sale"
     RETURN = "return"

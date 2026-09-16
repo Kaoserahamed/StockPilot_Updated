@@ -3,6 +3,7 @@
 Provides custom exception classes and a global exception handler that ensures
 consistent error response format across all API endpoints.
 """
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -14,6 +15,7 @@ logger = get_logger(__name__)
 
 
 # ---------- Custom Exception Classes ----------
+
 
 class AppException(Exception):
     """Base exception for application-specific errors."""
@@ -65,8 +67,10 @@ class RateLimitException(AppException):
 
 # ---------- Error Response Format ----------
 
-def _error_response(status_code: int, message: str, details: dict | None = None,
-                    request_id: str | None = None) -> JSONResponse:
+
+def _error_response(
+    status_code: int, message: str, details: dict | None = None, request_id: str | None = None
+) -> JSONResponse:
     """Build a consistent JSON error response."""
     content: dict = {
         "error": {
@@ -83,6 +87,7 @@ def _error_response(status_code: int, message: str, details: dict | None = None,
 
 # ---------- Exception Handlers ----------
 
+
 def register_exception_handlers(app: FastAPI) -> None:
     """Register all custom exception handlers with the FastAPI app."""
 
@@ -90,7 +95,10 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def app_exception_handler(request: Request, exc: AppException):
         logger.warning(
             "AppException: %s (status=%d) at %s %s",
-            exc.message, exc.status_code, request.method, request.url.path,
+            exc.message,
+            exc.status_code,
+            request.method,
+            request.url.path,
         )
         return _error_response(exc.status_code, exc.message, exc.details)
 
@@ -98,14 +106,18 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         errors = []
         for err in exc.errors():
-            errors.append({
-                "field": ".".join(str(loc) for loc in err.get("loc", [])),
-                "message": err.get("msg", ""),
-                "type": err.get("type", ""),
-            })
+            errors.append(
+                {
+                    "field": ".".join(str(loc) for loc in err.get("loc", [])),
+                    "message": err.get("msg", ""),
+                    "type": err.get("type", ""),
+                }
+            )
         logger.warning(
             "Validation error at %s %s: %d field(s) invalid",
-            request.method, request.url.path, len(errors),
+            request.method,
+            request.url.path,
+            len(errors),
         )
         return _error_response(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -125,7 +137,9 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def unhandled_exception_handler(request: Request, exc: Exception):
         logger.exception(
             "Unhandled exception at %s %s: %s",
-            request.method, request.url.path, str(exc),
+            request.method,
+            request.url.path,
+            str(exc),
         )
         # Hide internal details from the client
         return _error_response(

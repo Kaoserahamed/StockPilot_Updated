@@ -8,10 +8,8 @@ Usage:
         query = db.query(Item).filter(Item.business_id == business_id)
         return paginated_response(query, limit, offset)
 """
-from fastapi import Query
-from sqlalchemy.orm import Query as SAQuery
-from app.core.config import settings
 
+from sqlalchemy.orm import Query as SAQuery
 
 DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 200

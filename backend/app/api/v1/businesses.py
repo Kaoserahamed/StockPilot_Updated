@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from sqlalchemy.orm import Session
 import os
 import uuid
-from app.core.deps import Context, get_current_context
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy.orm import Session
+
 from app.core.config import settings
+from app.core.deps import Context, get_current_context
 from app.db.session import get_db
 from app.models.business import Business
 from app.models.user import UserBusiness
@@ -19,14 +21,22 @@ def get_my_business(ctx: Context = Depends(get_current_context), db: Session = D
 
 
 @router.post("", response_model=BusinessOut, status_code=201)
-def create_business(payload: BusinessCreate, ctx: Context = Depends(get_current_context),
-                    db: Session = Depends(get_db)):
+def create_business(
+    payload: BusinessCreate,
+    ctx: Context = Depends(get_current_context),
+    db: Session = Depends(get_db),
+):
     """FR-2.1 / FR-24: authenticated owner can create an additional business profile."""
     if ctx.role != "Owner":
         raise HTTPException(status_code=403, detail="Only Owner can create a business")
-    biz = Business(name=payload.name, address=payload.address, phone=payload.phone,
-                   email=payload.email, currency=payload.currency or "BDT",
-                   tax_rate=payload.tax_rate or 0.0)
+    biz = Business(
+        name=payload.name,
+        address=payload.address,
+        phone=payload.phone,
+        email=payload.email,
+        currency=payload.currency or "BDT",
+        tax_rate=payload.tax_rate or 0.0,
+    )
     db.add(biz)
     db.flush()
     db.add(UserBusiness(user_id=ctx.user.id, business_id=biz.id, role="Owner", is_active=True))
@@ -36,8 +46,11 @@ def create_business(payload: BusinessCreate, ctx: Context = Depends(get_current_
 
 
 @router.patch("/me", response_model=BusinessOut)
-def update_my_business(payload: BusinessUpdate, ctx: Context = Depends(get_current_context),
-                       db: Session = Depends(get_db)):
+def update_my_business(
+    payload: BusinessUpdate,
+    ctx: Context = Depends(get_current_context),
+    db: Session = Depends(get_db),
+):
     if ctx.role != "Owner":
         raise HTTPException(status_code=403, detail="Only Owner can update business")
     biz = db.query(Business).filter(Business.id == ctx.business_id).first()
@@ -49,8 +62,11 @@ def update_my_business(payload: BusinessUpdate, ctx: Context = Depends(get_curre
 
 
 @router.post("/me/logo", response_model=BusinessOut)
-def upload_logo(file: UploadFile = File(...), ctx: Context = Depends(get_current_context),
-                db: Session = Depends(get_db)):
+def upload_logo(
+    file: UploadFile = File(...),
+    ctx: Context = Depends(get_current_context),
+    db: Session = Depends(get_db),
+):
     """FR-2.2: store business logo. Local filesystem initially."""
     if ctx.role != "Owner":
         raise HTTPException(status_code=403, detail="Only Owner can update business")
@@ -66,4 +82,3 @@ def upload_logo(file: UploadFile = File(...), ctx: Context = Depends(get_current
     db.commit()
     db.refresh(biz)
     return biz
-

@@ -1,6 +1,8 @@
 from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+
 from app.core.deps import Context, get_current_context
 from app.db.session import get_db
 from app.services import finance_service as f
@@ -17,9 +19,13 @@ def _finance_guard(ctx: Context):
 
 
 @router.get("/revenue")
-def revenue(ctx: Context = Depends(get_current_context), db: Session = Depends(get_db),
-            preset: str = Query("month"), date_from: datetime | None = None,
-            date_to: datetime | None = None):
+def revenue(
+    ctx: Context = Depends(get_current_context),
+    db: Session = Depends(get_db),
+    preset: str = Query("month"),
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+):
     """FR-16: revenue for a period + trend buckets."""
     _finance_guard(ctx)
     preset = preset if preset in PRESETS else "month"
@@ -31,9 +37,13 @@ def revenue(ctx: Context = Depends(get_current_context), db: Session = Depends(g
 
 
 @router.get("/cogs")
-def cogs(ctx: Context = Depends(get_current_context), db: Session = Depends(get_db),
-         preset: str = Query("month"), date_from: datetime | None = None,
-         date_to: datetime | None = None):
+def cogs(
+    ctx: Context = Depends(get_current_context),
+    db: Session = Depends(get_db),
+    preset: str = Query("month"),
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+):
     """FR-17: COGS overall + per product."""
     _finance_guard(ctx)
     preset = preset if preset in PRESETS else "month"
@@ -42,9 +52,13 @@ def cogs(ctx: Context = Depends(get_current_context), db: Session = Depends(get_
 
 
 @router.get("/profit")
-def profit(ctx: Context = Depends(get_current_context), db: Session = Depends(get_db),
-           preset: str = Query("month"), date_from: datetime | None = None,
-           date_to: datetime | None = None):
+def profit(
+    ctx: Context = Depends(get_current_context),
+    db: Session = Depends(get_db),
+    preset: str = Query("month"),
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+):
     """FR-18: gross/net profit for a period."""
     _finance_guard(ctx)
     preset = preset if preset in PRESETS else "month"

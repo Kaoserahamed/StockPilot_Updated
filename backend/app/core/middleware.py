@@ -6,6 +6,7 @@ Provides:
 - Request timing metrics
 - Response caching headers
 """
+
 import time
 import uuid
 from collections.abc import Callable
@@ -99,7 +100,10 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
         logger.info(
             "%s %s -> %d (%.2fms)",
-            request.method, request.url.path, response.status_code, elapsed_ms,
+            request.method,
+            request.url.path,
+            response.status_code,
+            elapsed_ms,
             extra={"request_id": req_id, "status": response.status_code, "ms": elapsed_ms},
         )
         return response

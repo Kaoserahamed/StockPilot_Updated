@@ -6,20 +6,37 @@ Modules:
     _expenses   — expense totals and breakdowns
     _analytics  — top products, customer stats, supplier stats
 """
-from app.services.finance._utils import parse_dt, resolve_range, REVENUE_STATUSES, PRESETS
-from app.services.finance._revenue import revenue_summary, sales_in_range, revenue_trend
-from app.services.finance._expenses import expense_summary, expense_breakdown
-from app.services.finance._analytics import top_products, customer_stats, supplier_stats
-from app.services.finance._missing import (  # noqa: F401
-    profit_summary, sales_trend, inventory_value,
-    expenses_total, cogs_summary, avg_costs,
+
+from app.services.finance._analytics import customer_stats, supplier_stats, top_products
+from app.services.finance._expenses import expense_breakdown, expense_summary
+from app.services.finance._missing import (
+    avg_costs,
+    cogs_summary,
+    expenses_total,
+    inventory_value,
+    profit_summary,
+    sales_trend,
 )
+from app.services.finance._revenue import revenue_summary, revenue_trend, sales_in_range
+from app.services.finance._utils import PRESETS, REVENUE_STATUSES, parse_dt, resolve_range
 
 __all__ = [
-    "parse_dt", "resolve_range", "REVENUE_STATUSES", "PRESETS",
-    "revenue_summary", "sales_in_range", "revenue_trend",
-    "expense_summary", "expense_breakdown",
-    "top_products", "customer_stats", "supplier_stats",
-    "profit_summary", "sales_trend", "inventory_value",
-    "expenses_total", "cogs_summary", "avg_costs",
+    "PRESETS",
+    "REVENUE_STATUSES",
+    "avg_costs",
+    "cogs_summary",
+    "customer_stats",
+    "expense_breakdown",
+    "expense_summary",
+    "expenses_total",
+    "inventory_value",
+    "parse_dt",
+    "profit_summary",
+    "resolve_range",
+    "revenue_summary",
+    "revenue_trend",
+    "sales_in_range",
+    "sales_trend",
+    "supplier_stats",
+    "top_products",
 ]

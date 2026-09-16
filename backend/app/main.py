@@ -4,21 +4,36 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import analytics, auth, businesses, categories, employees, expenses, finance, inventory, invoices, parties, products, purchases, reports, returns, sales
+import app.models
+from app.api import health as health_api
+from app.api.v1 import ai as ai_api
+from app.api.v1 import (
+    analytics,
+    auth,
+    businesses,
+    categories,
+    employees,
+    expenses,
+    finance,
+    inventory,
+    invoices,
+    parties,
+    products,
+    purchases,
+    reports,
+    returns,
+    sales,
+)
 from app.api.v1 import settings as settings_api
 from app.api.v1 import subscription as subscription_api
-from app.api.v1 import ai as ai_api
-from app.api import health as health_api
 from app.core.config import settings
 from app.core.deps import Context, get_current_context
 from app.core.exceptions import register_exception_handlers
 from app.core.logging_config import setup_logging
 from app.core.middleware import register_middleware
-from app.core.csrf import CSRFMiddleware
 from app.core.timeouts import setup_timeouts
 from app.db.base import Base
 from app.db.session import engine, ensure_indexes, get_db
-import app.models  # noqa: F401 - register models
 
 # Setup structured logging
 setup_logging(level=settings.log_level, json_format=settings.json_logs)
@@ -43,7 +58,9 @@ async def lifespan(app: FastAPI):
     logger.info("Database connections closed")
 
 
-app = FastAPI(title=settings.app_name, lifespan=lifespan,
+app = FastAPI(
+    title=settings.app_name,
+    lifespan=lifespan,
     description="""
 ## StockPilot API - Inventory & POS SaaS
 
@@ -108,18 +125,36 @@ def root():
         "api": "/api/v1",
     }
 
+
 # --- Audit logs endpoint ---
 @app.get("/api/v1/audit-logs")
 def list_audit_logs(ctx: Context = Depends(get_current_context), db=Depends(get_db)):
     if ctx.role not in ("Owner", "Manager"):
         from fastapi import HTTPException
+
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     from app.models.inventory import AuditLog
-    rows = db.query(AuditLog).filter(AuditLog.business_id == ctx.business_id).order_by(
-        AuditLog.id.desc()).limit(200).all()
-    return [{"id": r.id, "user_id": r.user_id, "action": r.action, "resource": r.resource,
-             "resource_id": r.resource_id, "old_value": r.old_value, "new_value": r.new_value,
-             "created_at": r.created_at} for r in rows]
+
+    rows = (
+        db.query(AuditLog)
+        .filter(AuditLog.business_id == ctx.business_id)
+        .order_by(AuditLog.id.desc())
+        .limit(200)
+        .all()
+    )
+    return [
+        {
+            "id": r.id,
+            "user_id": r.user_id,
+            "action": r.action,
+            "resource": r.resource,
+            "resource_id": r.resource_id,
+            "old_value": r.old_value,
+            "new_value": r.new_value,
+            "created_at": r.created_at,
+        }
+        for r in rows
+    ]
 
 
 # --- API v1 routers ---

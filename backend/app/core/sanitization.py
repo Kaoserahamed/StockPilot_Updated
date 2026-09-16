@@ -5,14 +5,13 @@ Provides:
 - String length validation
 - Pattern-based validation for common fields
 """
-import re
-import html
-from typing import Optional
 
+import html
+import re
 
 # Patterns for common validations
-EMAIL_PATTERN = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
-PHONE_PATTERN = re.compile(r'^\+?[\d\s\-()]{7,20}$')
+EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+PHONE_PATTERN = re.compile(r"^\+?[\d\s\-()]{7,20}$")
 SAFE_STRING_PATTERN = re.compile(r'^[\w\s\-.,!?()[\]{}:;\'"@#$%^&*+=/\\|~`<>"]*$')
 
 # Maximum field lengths to prevent DoS
@@ -21,7 +20,7 @@ MAX_TEXT_LENGTH = 10000
 MAX_NAME_LENGTH = 255
 
 
-def sanitize_string(value: Optional[str], max_length: int = MAX_STRING_LENGTH) -> Optional[str]:
+def sanitize_string(value: str | None, max_length: int = MAX_STRING_LENGTH) -> str | None:
     """Sanitize a string input: strip, truncate, and HTML-encode."""
     if value is None:
         return None
@@ -34,7 +33,7 @@ def sanitize_string(value: Optional[str], max_length: int = MAX_STRING_LENGTH) -
     return value
 
 
-def sanitize_text(value: Optional[str], max_length: int = MAX_TEXT_LENGTH) -> Optional[str]:
+def sanitize_text(value: str | None, max_length: int = MAX_TEXT_LENGTH) -> str | None:
     """Sanitize a text field (longer, preserves newlines)."""
     if value is None:
         return None
@@ -53,7 +52,7 @@ def sanitize_name(value: str) -> str:
     return value
 
 
-def sanitize_email(value: Optional[str]) -> Optional[str]:
+def sanitize_email(value: str | None) -> str | None:
     """Validate and sanitize an email address."""
     if not value:
         return None
@@ -63,7 +62,7 @@ def sanitize_email(value: Optional[str]) -> Optional[str]:
     return html.escape(value)
 
 
-def sanitize_phone(value: Optional[str]) -> Optional[str]:
+def sanitize_phone(value: str | None) -> str | None:
     """Validate and sanitize a phone number."""
     if not value:
         return None

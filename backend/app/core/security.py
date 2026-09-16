@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 from jose import JWTError, jwt
@@ -19,17 +18,25 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 
-def create_access_token(subject: str, expires_minutes: Optional[int] = None) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(
+def create_access_token(subject: str, expires_minutes: int | None = None) -> str:
+    expire = datetime.now(UTC) + timedelta(
         minutes=expires_minutes or settings.access_token_expire_minutes
     )
-    return jwt.encode({"sub": subject, "exp": expire, "type": "access"}, settings.secret_key, algorithm=settings.algorithm)
+    return jwt.encode(
+        {"sub": subject, "exp": expire, "type": "access"},
+        settings.secret_key,
+        algorithm=settings.algorithm,
+    )
 
 
 def create_refresh_token(subject: str) -> str:
     """Create a long-lived refresh token for obtaining new access tokens."""
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
-    return jwt.encode({"sub": subject, "exp": expire, "type": "refresh"}, settings.secret_key, algorithm=settings.algorithm)
+    expire = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
+    return jwt.encode(
+        {"sub": subject, "exp": expire, "type": "refresh"},
+        settings.secret_key,
+        algorithm=settings.algorithm,
+    )
 
 
 def decode_token(token: str, expected_type: str = "access") -> str:
@@ -45,8 +52,8 @@ def decode_token(token: str, expected_type: str = "access") -> str:
     """
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        sub: Optional[str] = payload.get("sub")
-        token_type: Optional[str] = payload.get("type")
+        sub: str | None = payload.get("sub")
+        token_type: str | None = payload.get("type")
         if sub is None:
             raise JWTError("missing sub")
         if token_type != expected_type:

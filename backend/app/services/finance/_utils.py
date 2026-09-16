@@ -1,5 +1,7 @@
 """Utility functions for finance services: date parsing, range resolution, memoization."""
+
 from datetime import datetime, timedelta
+
 from sqlalchemy.orm import Session
 
 # FR-16.3: cancelled transactions excluded from revenue/profit math.
@@ -21,7 +23,7 @@ def _memo_get(db: Session, fname: str, business_id: int, start, end):
     cache = getattr(db, "_fin_cache", None)
     if cache is None:
         cache = {}
-        setattr(db, "_fin_cache", cache)
+        db._fin_cache = cache
     return cache.get((fname, _memo_key(business_id, start, end)))
 
 
@@ -29,7 +31,7 @@ def _memo_set(db: Session, fname: str, business_id: int, start, end, value):
     cache = getattr(db, "_fin_cache", None)
     if cache is None:
         cache = {}
-        setattr(db, "_fin_cache", cache)
+        db._fin_cache = cache
     cache[(fname, _memo_key(business_id, start, end))] = value
     return value
 
@@ -66,6 +68,7 @@ def resolve_range(preset: str = "month", date_from=None, date_to=None):
 
 def _sale_range_filters(business_id: int, start, end):
     from app.models.sales import Sale
+
     flt = [Sale.business_id == business_id, Sale.status.in_(REVENUE_STATUSES)]
     if start is not None:
         flt.append(Sale.created_at >= start)

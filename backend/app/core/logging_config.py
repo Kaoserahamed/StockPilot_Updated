@@ -3,12 +3,13 @@
 Uses python-json-logger to emit JSON lines that Azure Log Analytics,
 Docker, and any ELK/Splunk-style collector can ingest without parsing.
 """
+
 import logging
 import sys
-from typing import Any
 
 try:
     from pythonjsonlogger import jsonlogger  # type: ignore
+
     _HAS_JSON = True
 except ImportError:
     _HAS_JSON = False

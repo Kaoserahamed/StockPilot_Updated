@@ -4,42 +4,56 @@ This module now delegates to smaller, focused modules under app/services/finance
 New code should import directly from app.services.finance.
 Existing imports from app.services.finance_service continue to work.
 """
+
 # Re-export everything from the new subpackage
-from app.services.finance import (  # noqa: F401
+from app.services.finance import (
+    PRESETS,
+    REVENUE_STATUSES,
+    customer_stats,
+    expense_breakdown,
+    expense_summary,
     parse_dt,
     resolve_range,
-    REVENUE_STATUSES,
-    PRESETS,
     revenue_summary,
-    sales_in_range,
     revenue_trend,
-    expense_summary,
-    expense_breakdown,
-    top_products,
-    customer_stats,
+    sales_in_range,
     supplier_stats,
+    top_products,
 )
-
-from app.services.finance._missing import (  # noqa: F401, E402
+from app.services.finance._missing import (
+    avg_costs,
+    cogs_summary,
+    expenses_total,
+    inventory_value,
     profit_summary,
     sales_trend,
-    inventory_value,
-    expenses_total,
-    cogs_summary,
-    avg_costs,
 )
-from app.services.finance._utils import (  # noqa: F401, E402
-    _sale_range_filters,
+from app.services.finance._utils import (
     MAX_SALE_IDS,
     MAX_TREND_BUCKETS,
+    _sale_range_filters,
 )
 
 __all__ = [
-    "parse_dt", "resolve_range", "REVENUE_STATUSES", "PRESETS",
-    "revenue_summary", "sales_in_range", "revenue_trend",
-    "expense_summary", "expense_breakdown",
-    "top_products", "customer_stats", "supplier_stats",
-    "profit_summary", "sales_trend", "inventory_value",
-    "expenses_total", "cogs_summary", "avg_costs",
-    "_sale_range_filters", "MAX_SALE_IDS", "MAX_TREND_BUCKETS",
+    "MAX_SALE_IDS",
+    "MAX_TREND_BUCKETS",
+    "PRESETS",
+    "REVENUE_STATUSES",
+    "_sale_range_filters",
+    "avg_costs",
+    "cogs_summary",
+    "customer_stats",
+    "expense_breakdown",
+    "expense_summary",
+    "expenses_total",
+    "inventory_value",
+    "parse_dt",
+    "profit_summary",
+    "resolve_range",
+    "revenue_summary",
+    "revenue_trend",
+    "sales_in_range",
+    "sales_trend",
+    "supplier_stats",
+    "top_products",
 ]

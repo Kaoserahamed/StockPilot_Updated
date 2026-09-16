@@ -1,17 +1,17 @@
 from datetime import datetime
-from typing import Optional
+
 from pydantic import BaseModel, EmailStr, Field
 
 
 # ---------- Auth / Users (FR-1, FR-3) ----------
 class RegisterRequest(BaseModel):
     owner_name: str = Field(min_length=1, max_length=255)
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = Field(default=None, max_length=50)
+    email: EmailStr | None = None
+    phone: str | None = Field(default=None, max_length=50)
     password: str = Field(min_length=6, max_length=128)
     business_name: str = Field(min_length=1, max_length=255)
-    business_address: Optional[str] = None
-    business_phone: Optional[str] = None
+    business_address: str | None = None
+    business_phone: str | None = None
 
 
 class LoginRequest(BaseModel):
@@ -37,8 +37,8 @@ class ResetPasswordRequest(BaseModel):
 class UserOut(BaseModel):
     id: int
     name: str
-    email: Optional[str]
-    phone: Optional[str]
+    email: str | None
+    phone: str | None
     is_active: bool
 
     class Config:
@@ -47,8 +47,8 @@ class UserOut(BaseModel):
 
 class EmployeeCreate(BaseModel):
     name: str
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
+    email: EmailStr | None = None
+    phone: str | None = None
     password: str = Field(min_length=6, max_length=128)
     role: str = Field(pattern="^(Owner|Manager|Cashier)$")
 
@@ -67,20 +67,20 @@ class EmployeeRoleUpdate(BaseModel):
 # ---------- Business (FR-2) ----------
 class BusinessCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
-    address: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[EmailStr] = None
-    currency: Optional[str] = "BDT"
-    tax_rate: Optional[float] = 0.0
+    address: str | None = None
+    phone: str | None = None
+    email: EmailStr | None = None
+    currency: str | None = "BDT"
+    tax_rate: float | None = 0.0
 
 
 class BusinessOut(BaseModel):
     id: int
     name: str
-    address: Optional[str]
-    phone: Optional[str]
-    email: Optional[str]
-    logo_path: Optional[str]
+    address: str | None
+    phone: str | None
+    email: str | None
+    logo_path: str | None
     currency: str
     tax_rate: float
     invoice_format: str
@@ -91,32 +91,32 @@ class BusinessOut(BaseModel):
 
 
 class BusinessUpdate(BaseModel):
-    name: Optional[str] = None
-    address: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[EmailStr] = None
-    currency: Optional[str] = None
-    tax_rate: Optional[float] = None
-    invoice_format: Optional[str] = None
-    min_stock_default: Optional[int] = None
+    name: str | None = None
+    address: str | None = None
+    phone: str | None = None
+    email: EmailStr | None = None
+    currency: str | None = None
+    tax_rate: float | None = None
+    invoice_format: str | None = None
+    min_stock_default: int | None = None
 
 
 # ---------- Category (FR-4) ----------
 class CategoryCreate(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class CategoryUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    description: str | None = None
+    is_active: bool | None = None
 
 
 class CategoryOut(BaseModel):
     id: int
     name: str
-    description: Optional[str]
+    description: str | None
     is_active: bool
 
     class Config:
@@ -127,9 +127,9 @@ class CategoryOut(BaseModel):
 class ProductCreate(BaseModel):
     name: str
     sku: str
-    barcode: Optional[str] = None
-    category_id: Optional[int] = None
-    brand: Optional[str] = None
+    barcode: str | None = None
+    category_id: int | None = None
+    brand: str | None = None
     unit: str = "pcs"
     purchase_price: float = 0
     selling_price: float = 0
@@ -137,30 +137,30 @@ class ProductCreate(BaseModel):
 
 
 class ProductUpdate(BaseModel):
-    name: Optional[str] = None
-    category_id: Optional[int] = None
-    brand: Optional[str] = None
-    unit: Optional[str] = None
-    purchase_price: Optional[float] = None
-    selling_price: Optional[float] = None
-    min_stock: Optional[int] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    category_id: int | None = None
+    brand: str | None = None
+    unit: str | None = None
+    purchase_price: float | None = None
+    selling_price: float | None = None
+    min_stock: int | None = None
+    is_active: bool | None = None
 
 
 class ProductOut(BaseModel):
     id: int
     name: str
     sku: str
-    barcode: Optional[str]
-    category_id: Optional[int]
-    brand: Optional[str]
+    barcode: str | None
+    category_id: int | None
+    brand: str | None
     unit: str
     purchase_price: float
     selling_price: float
     min_stock: int
     quantity_on_hand: int
     is_active: bool
-    image_path: Optional[str]
+    image_path: str | None
 
     class Config:
         from_attributes = True
@@ -169,10 +169,10 @@ class ProductOut(BaseModel):
 # ---------- Supplier / Customer (FR-6, FR-7) ----------
 class SupplierCreate(BaseModel):
     company_name: str
-    contact_person: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[EmailStr] = None
-    address: Optional[str] = None
+    contact_person: str | None = None
+    phone: str | None = None
+    email: EmailStr | None = None
+    address: str | None = None
 
 
 class SupplierOut(SupplierCreate):
@@ -186,9 +186,9 @@ class SupplierOut(SupplierCreate):
 
 class CustomerCreate(BaseModel):
     name: str
-    phone: Optional[str] = None
-    email: Optional[EmailStr] = None
-    address: Optional[str] = None
+    phone: str | None = None
+    email: EmailStr | None = None
+    address: str | None = None
     credit_limit: float = 0
 
 
@@ -213,9 +213,9 @@ class InventoryTxOut(BaseModel):
     product_id: int
     quantity_change: int
     tx_type: str
-    reason: Optional[str]
-    user_id: Optional[int]
-    related_id: Optional[str]
+    reason: str | None
+    user_id: int | None
+    related_id: str | None
     created_at: datetime
 
     class Config:
@@ -224,9 +224,10 @@ class InventoryTxOut(BaseModel):
 
 class PriceAdjustRequest(BaseModel):
     """Optional-field price adjustment: provide sell price, cost price or both."""
+
     product_id: int
-    new_selling_price: Optional[float] = Field(default=None, ge=0)
-    new_purchase_price: Optional[float] = Field(default=None, ge=0)
+    new_selling_price: float | None = Field(default=None, ge=0)
+    new_purchase_price: float | None = Field(default=None, ge=0)
     reason: str = Field(min_length=1)
 
 
@@ -238,7 +239,7 @@ class PriceAdjustmentOut(BaseModel):
     old_purchase_price: float
     new_purchase_price: float
     reason: str
-    user_id: Optional[int]
+    user_id: int | None
     created_at: datetime
 
     class Config:
@@ -258,13 +259,13 @@ class PurchaseCreate(BaseModel):
     discount_amount: float = 0
     tax_amount: float = 0
     paid_amount: float = 0
-    note: Optional[str] = None
+    note: str | None = None
 
 
 class PurchaseItemOut(BaseModel):
     id: int
     product_id: int
-    product_name: Optional[str] = None
+    product_name: str | None = None
     quantity: int
     unit_cost: float
     line_total: float
@@ -276,7 +277,7 @@ class PurchaseItemOut(BaseModel):
 class PurchaseOut(BaseModel):
     id: int
     supplier_id: int
-    supplier_name: Optional[str] = None
+    supplier_name: str | None = None
     purchase_date: datetime
     subtotal: float
     discount_amount: float
@@ -285,7 +286,7 @@ class PurchaseOut(BaseModel):
     paid_amount: float
     payment_status: str
     status: str
-    note: Optional[str] = None
+    note: str | None = None
     items: list[PurchaseItemOut] = []
 
     class Config:
@@ -300,23 +301,23 @@ class PurchasePayRequest(BaseModel):
 class CartItemIn(BaseModel):
     product_id: int
     quantity: int = Field(gt=0)
-    unit_price: Optional[float] = None  # default: product.selling_price
+    unit_price: float | None = None  # default: product.selling_price
     discount: float = 0
 
 
 class CheckoutRequest(BaseModel):
     items: list[CartItemIn] = Field(min_length=1)
-    customer_id: Optional[int] = None
+    customer_id: int | None = None
     discount_amount: float = 0
     tax_percent: float = 0
-    paid_amount: Optional[float] = None  # default: full total
+    paid_amount: float | None = None  # default: full total
     payment_method: str = "cash"
 
 
 class SaleItemOut(BaseModel):
     id: int
     product_id: int
-    product_name: Optional[str] = None
+    product_name: str | None = None
     quantity: int
     unit_price: float
     discount: float
@@ -330,8 +331,8 @@ class SaleItemOut(BaseModel):
 class SaleOut(BaseModel):
     id: int
     invoice_no: str
-    customer_id: Optional[int] = None
-    customer_name: Optional[str] = None
+    customer_id: int | None = None
+    customer_name: str | None = None
     subtotal: float
     discount_amount: float
     tax_percent: float
@@ -382,21 +383,21 @@ class SettingsOut(BaseModel):
     tax_rate: float
     invoice_format: str
     min_stock_default: int
-    business_name: Optional[str] = None
-    address: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
+    business_name: str | None = None
+    address: str | None = None
+    phone: str | None = None
+    email: str | None = None
 
 
 class SettingsUpdate(BaseModel):
-    currency: Optional[str] = None
-    tax_rate: Optional[float] = None
-    invoice_format: Optional[str] = None
-    min_stock_default: Optional[int] = None
-    business_name: Optional[str] = None
-    address: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[EmailStr] = None
+    currency: str | None = None
+    tax_rate: float | None = None
+    invoice_format: str | None = None
+    min_stock_default: int | None = None
+    business_name: str | None = None
+    address: str | None = None
+    phone: str | None = None
+    email: EmailStr | None = None
 
 
 class SubscriptionOut(BaseModel):
@@ -410,7 +411,7 @@ class SubscriptionOut(BaseModel):
     employee_usage_pct: float
     near_limit: bool
     at_limit: bool
-    message: Optional[str] = None
+    message: str | None = None
 
     class Config:
         from_attributes = True
@@ -429,7 +430,7 @@ class AIChatRequest(BaseModel):
 class AIChatResponse(BaseModel):
     answer: str
     data: dict
-    recommendation_id: Optional[int] = None
+    recommendation_id: int | None = None
 
 
 class AISummaryRequest(BaseModel):
@@ -451,32 +452,32 @@ class AIRecommendationOut(BaseModel):
 
 
 class AIRecommendationUpdate(BaseModel):
-    reviewed: Optional[bool] = None
-    acted_upon: Optional[bool] = None
+    reviewed: bool | None = None
+    acted_upon: bool | None = None
 
 
 # ---------- Expenses (FR-15) ----------
 class ExpenseCreate(BaseModel):
     category: str = Field(min_length=1, max_length=50)
     amount: float = Field(gt=0)
-    description: Optional[str] = None
-    expense_date: Optional[datetime] = None
+    description: str | None = None
+    expense_date: datetime | None = None
     payment_method: str = "cash"
 
 
 class ExpenseUpdate(BaseModel):
-    category: Optional[str] = Field(default=None, max_length=50)
-    amount: Optional[float] = Field(default=None, gt=0)
-    description: Optional[str] = None
-    expense_date: Optional[datetime] = None
-    payment_method: Optional[str] = None
+    category: str | None = Field(default=None, max_length=50)
+    amount: float | None = Field(default=None, gt=0)
+    description: str | None = None
+    expense_date: datetime | None = None
+    payment_method: str | None = None
 
 
 class ExpenseOut(BaseModel):
     id: int
     category: str
     amount: float
-    description: Optional[str] = None
+    description: str | None = None
     expense_date: datetime
     payment_method: str
     created_at: datetime

@@ -45,15 +45,12 @@ def ensure_indexes() -> None:
     indexes) would otherwise never reach an existing MySQL/Postgres database.
     Only used for demos/service upgrades — migrations should use Alembic.
     """
-    from app.db.base import Base
     from sqlalchemy.schema import CreateIndex
 
+    from app.db.base import Base
+
     insp = inspect(engine)
-    existing = {
-        (t, ix["name"])
-        for t in insp.get_table_names()
-        for ix in insp.get_indexes(t)
-    }
+    existing = {(t, ix["name"]) for t in insp.get_table_names() for ix in insp.get_indexes(t)}
     for table in Base.metadata.tables.values():
         if not insp.has_table(table.name):
             continue

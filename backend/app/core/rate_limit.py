@@ -4,15 +4,16 @@ Uses slowapi (built on limits library) to enforce per-endpoint and
 per-client rate limits. Supports in-memory storage for dev and Redis
 for production deployments.
 """
+
 from collections.abc import Callable
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
 
 try:
     from slowapi import Limiter, _rate_limit_exceeded_handler  # type: ignore
     from slowapi.errors import RateLimitExceeded  # type: ignore
     from slowapi.util import get_remote_address  # type: ignore
+
     _HAS_SLOWAPI = True
 except ImportError:
     _HAS_SLOWAPI = False
@@ -60,11 +61,11 @@ def rate_limit(requests: int, window_seconds: int) -> Callable:
     Returns a no-op decorator if slowapi is not installed.
     """
     if not _HAS_SLOWAPI:
+
         def noop_decorator(func: Callable) -> Callable:
             return func
-        return noop_decorator
 
-    limiter: Limiter = None  # Will be resolved from app state at request time
+        return noop_decorator
 
     def decorator(func: Callable) -> Callable:
         # Store limits on the function; actual decoration happens via middleware

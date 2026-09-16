@@ -23,7 +23,7 @@ def get_current_user(
     try:
         user_id = decode_token(creds.credentials, expected_type="access")
     except ValueError:
-        raise _auth_failed("Invalid or expired token")
+        raise _auth_failed("Invalid or expired token") from None
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user or not user.is_active:
         raise _auth_failed("User inactive or not found")
@@ -73,8 +73,4 @@ def require_roles(*roles: str):
 
 
 def find_user_by_username(db: Session, username: str) -> User | None:
-    return (
-        db.query(User)
-        .filter(or_(User.email == username, User.phone == username))
-        .first()
-    )
+    return db.query(User).filter(or_(User.email == username, User.phone == username)).first()

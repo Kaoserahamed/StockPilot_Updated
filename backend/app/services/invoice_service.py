@@ -1,5 +1,7 @@
 from datetime import datetime
+
 from sqlalchemy.orm import Session
+
 from app.models.business import Business
 from app.models.sales import InvoiceCounter
 
@@ -23,7 +25,11 @@ def next_invoice_no(db: Session, *, business_id: int) -> str:
     db.flush()
     now = datetime.now()
     seq = counter.last_seq
-    out = fmt.replace("{yyyy}", now.strftime("%Y")).replace("{yy}", now.strftime("%y")).replace("{mm}", now.strftime("%m"))
+    out = (
+        fmt.replace("{yyyy}", now.strftime("%Y"))
+        .replace("{yy}", now.strftime("%y"))
+        .replace("{mm}", now.strftime("%m"))
+    )
     # handle {seq} and {seq:0Nd} forms
     import re
 

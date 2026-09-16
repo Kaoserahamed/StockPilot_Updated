@@ -3,14 +3,25 @@
 Logs all significant business actions with user context, IP address,
 and user agent for compliance and security auditing.
 """
+
 from sqlalchemy.orm import Session
+
 from app.models.inventory import AuditLog
 
 
-def write_audit(db: Session, *, business_id: int, user_id: int | None,
-                action: str, resource: str, resource_id: str | None = None,
-                old_value: str | None = None, new_value: str | None = None,
-                ip_address: str | None = None, user_agent: str | None = None) -> None:
+def write_audit(
+    db: Session,
+    *,
+    business_id: int,
+    user_id: int | None,
+    action: str,
+    resource: str,
+    resource_id: str | None = None,
+    old_value: str | None = None,
+    new_value: str | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> None:
     """Write an audit log entry.
 
     Args:

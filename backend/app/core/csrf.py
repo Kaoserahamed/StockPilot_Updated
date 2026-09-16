@@ -5,10 +5,9 @@ Uses the double-submit cookie pattern:
 - State-changing requests (POST/PUT/PATCH/DELETE) must include the token
   in a header (X-CSRF-Token) that matches the cookie value
 """
-import hashlib
+
 import hmac
 import secrets
-import time
 from collections.abc import Callable
 
 from fastapi import Request

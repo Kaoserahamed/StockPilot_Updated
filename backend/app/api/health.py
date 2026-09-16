@@ -5,11 +5,12 @@ Provides:
 - GET /health/ready - readiness probe (DB connectivity)
 - GET /health/detailed - full dependency status
 """
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db, engine
+from app.db.session import get_db
 
 router = APIRouter(tags=["health"])
 
@@ -29,6 +30,7 @@ def health_ready(db: Session = Depends(get_db)) -> dict:
     except Exception:
         db_status = "disconnected"
         from fastapi.responses import JSONResponse
+
         return JSONResponse(
             status_code=503,
             content={"status": "not_ready", "database": db_status},

@@ -1,14 +1,28 @@
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from app.core.deps import find_user_by_username, get_current_user
-from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password, decode_token
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    hash_password,
+    verify_password,
+)
 from app.db.session import get_db
 from app.models.business import Business
 from app.models.user import PasswordResetToken, User, UserBusiness
-from app.schemas.schemas import (ForgotPasswordRequest, LoginRequest, RegisterRequest,
-                                 ResetPasswordRequest, TokenResponse, UserOut)
+from app.schemas.schemas import (
+    ForgotPasswordRequest,
+    LoginRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+    TokenResponse,
+    UserOut,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -19,6 +33,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=422, detail="email or phone required")
     # Validate password strength
     from app.core.sanitization import validate_password_strength
+
     is_valid, msg = validate_password_strength(payload.password)
     if not is_valid:
         raise HTTPException(status_code=422, detail=msg)
@@ -29,12 +44,20 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         existing = db.query(User).filter(User.phone == payload.phone).first()
     if existing:
         raise HTTPException(status_code=409, detail="User already exists")
-    user = User(name=payload.owner_name, email=payload.email, phone=payload.phone,
-                hashed_password=hash_password(payload.password))
+    user = User(
+        name=payload.owner_name,
+        email=payload.email,
+        phone=payload.phone,
+        hashed_password=hash_password(payload.password),
+    )
     db.add(user)
     db.flush()
-    business = Business(name=payload.business_name, address=payload.business_address,
-                        phone=payload.business_phone, email=payload.email)
+    business = Business(
+        name=payload.business_name,
+        address=payload.business_address,
+        phone=payload.business_phone,
+        email=payload.email,
+    )
     db.add(business)
     db.flush()
     db.add(UserBusiness(user_id=user.id, business_id=business.id, role="Owner", is_active=True))
@@ -64,7 +87,7 @@ def refresh_token(payload: dict, db: Session = Depends(get_db)):
     try:
         user_id = decode_token(token, expected_type="refresh")
     except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token") from None
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User inactive or not found")
@@ -90,8 +113,11 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
     # Always return generic message to avoid enumeration; still create token if found.
     if user:
         token = secrets.token_urlsafe(32)
-        db.add(PasswordResetToken(user_id=user.id, token=token,
-               expires_at=datetime.now(timezone.utc) + timedelta(hours=1)))
+        db.add(
+            PasswordResetToken(
+                user_id=user.id, token=token, expires_at=datetime.now(UTC) + timedelta(hours=1)
+            )
+        )
         db.commit()
         # In production: send email/SMS. For Phase-1 return token in dev only via header log.
         return {"message": "If account exists, reset instructions sent", "dev_token": token}
@@ -103,10 +129,10 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     row = db.query(PasswordResetToken).filter(PasswordResetToken.token == payload.token).first()
     if not row or row.used:
         raise HTTPException(status_code=400, detail="Invalid token")
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     exp = row.expires_at
     if exp.tzinfo is None:
-        exp = exp.replace(tzinfo=timezone.utc)
+        exp = exp.replace(tzinfo=UTC)
     if exp < now:
         raise HTTPException(status_code=400, detail="Token expired")
     user = db.query(User).filter(User.id == row.user_id).first()

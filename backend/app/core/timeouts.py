@@ -1,10 +1,9 @@
 """Request timeout configuration for the application."""
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-import asyncio
-from collections.abc import Callable
 
-from app.core.config import settings
+import asyncio
+
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 # Timeout in seconds
 DEFAULT_TIMEOUT = 30
@@ -45,7 +44,7 @@ class TimeoutMiddleware:
 
         try:
             await asyncio.wait_for(self.app(scope, receive, _send), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             response = JSONResponse(
                 status_code=504,
                 content={"error": {"code": 504, "message": f"Request timed out after {timeout}s"}},

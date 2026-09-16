@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from app.core.deps import Context, get_current_context
 from app.db.session import get_db
 from app.schemas.schemas import SubscriptionOut, SubscriptionUpdate
@@ -17,8 +18,11 @@ def get_subscription(ctx: Context = Depends(get_current_context), db: Session = 
 
 
 @router.patch("", response_model=SubscriptionOut)
-def change_plan(payload: SubscriptionUpdate, ctx: Context = Depends(get_current_context),
-                db: Session = Depends(get_db)):
+def change_plan(
+    payload: SubscriptionUpdate,
+    ctx: Context = Depends(get_current_context),
+    db: Session = Depends(get_db),
+):
     """Change plan (demo billing hook). Owner only."""
     if ctx.role != "Owner":
         raise HTTPException(status_code=403, detail="Only Owner can change plan")
