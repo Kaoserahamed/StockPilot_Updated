@@ -5,12 +5,16 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className = '' }: SkeletonProps) {
-  return (
-    <div className={`animate-pulse rounded-xl bg-slate-200 ${className}`} />
-  );
+  return <div className={`animate-pulse rounded-xl bg-slate-200 ${className}`} />;
 }
 
-export function SkeletonText({ lines = 3, className = '' }: { lines?: number; className?: string }) {
+export function SkeletonText({
+  lines = 3,
+  className = '',
+}: {
+  lines?: number;
+  className?: string;
+}) {
   return (
     <div className={`space-y-2.5 ${className}`}>
       {Array.from({ length: lines }).map((_, i) => (

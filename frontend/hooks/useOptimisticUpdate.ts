@@ -23,7 +23,7 @@ type OptimisticContext = {
 export function useOptimisticUpdate<TData = unknown, TVariables = unknown>(
   queryKey: string[],
   mutationFn: (variables: TVariables) => Promise<TData>,
-  onSuccess?: (data: TData, variables: TVariables) => void,
+  onSuccess?: (data: TData, variables: TVariables) => void
 ) {
   const queryClient = useQueryClient();
   const toast = useToast();

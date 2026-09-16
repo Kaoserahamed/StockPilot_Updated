@@ -27,7 +27,9 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex min-h-[400px] items-center justify-center p-6">
           <div className="max-w-md text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-3xl">⚠</div>
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-3xl">
+              ⚠
+            </div>
             <h2 className="text-xl font-bold text-slate-900">Something went wrong</h2>
             <p className="mt-2 text-sm text-slate-500">
               An unexpected error occurred. Please try refreshing the page.

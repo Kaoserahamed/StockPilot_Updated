@@ -22,12 +22,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const notify = useCallback((message: string, tone: ToastTone = 'info') => {
-    const id = ++_id;
-    setToasts((prev) => [...prev, { id, message, tone }]);
-    // Auto-dismiss after 4 seconds
-    setTimeout(() => dismiss(id), 4000);
-  }, [dismiss]);
+  const notify = useCallback(
+    (message: string, tone: ToastTone = 'info') => {
+      const id = ++_id;
+      setToasts((prev) => [...prev, { id, message, tone }]);
+      // Auto-dismiss after 4 seconds
+      setTimeout(() => dismiss(id), 4000);
+    },
+    [dismiss]
+  );
 
   const ctx: ToastCtx = {
     notify,
@@ -50,13 +53,21 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             warning: 'bg-amber-500 text-white',
           };
           const icons: Record<ToastTone, string> = {
-            success: '✓', error: '✕', info: 'ℹ', warning: '⚠',
+            success: '✓',
+            error: '✕',
+            info: 'ℹ',
+            warning: '⚠',
           };
           return (
-            <div key={t.id} className={`flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${colors[t.tone]}`}>
+            <div
+              key={t.id}
+              className={`flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${colors[t.tone]}`}
+            >
               <span className="text-base">{icons[t.tone]}</span>
               <span className="max-w-xs">{t.message}</span>
-              <button onClick={() => dismiss(t.id)} className="ml-2 opacity-70 hover:opacity-100">✕</button>
+              <button onClick={() => dismiss(t.id)} className="ml-2 opacity-70 hover:opacity-100">
+                ✕
+              </button>
             </div>
           );
         })}

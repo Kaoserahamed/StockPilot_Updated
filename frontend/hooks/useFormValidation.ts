@@ -26,50 +26,59 @@ type FieldErrors = Record<string, string>;
 export function useFormValidation(rules: FieldRules) {
   const [errors, setErrors] = useState<FieldErrors>({});
 
-  const validateField = useCallback((name: string, value: string): string => {
-    const rule = rules[name];
-    if (!rule) return '';
+  const validateField = useCallback(
+    (name: string, value: string): string => {
+      const rule = rules[name];
+      if (!rule) return '';
 
-    if (rule.required && (!value || value.trim() === '')) {
-      return rule.message || `${name} is required`;
-    }
-    if (rule.minLength && value.length < rule.minLength) {
-      return rule.message || `${name} must be at least ${rule.minLength} characters`;
-    }
-    if (rule.maxLength && value.length > rule.maxLength) {
-      return rule.message || `${name} must be at most ${rule.maxLength} characters`;
-    }
-    if (rule.pattern && !rule.pattern.test(value)) {
-      return rule.message || `${name} is invalid`;
-    }
-    return '';
-  }, [rules]);
-
-  const validate = useCallback((data: Record<string, string>): boolean => {
-    const newErrors: FieldErrors = {};
-    let isValid = true;
-
-    for (const [name, rule] of Object.entries(rules)) {
-      const error = validateField(name, data[name] || '');
-      if (error) {
-        newErrors[name] = error;
-        isValid = false;
+      if (rule.required && (!value || value.trim() === '')) {
+        return rule.message || `${name} is required`;
       }
-    }
+      if (rule.minLength && value.length < rule.minLength) {
+        return rule.message || `${name} must be at least ${rule.minLength} characters`;
+      }
+      if (rule.maxLength && value.length > rule.maxLength) {
+        return rule.message || `${name} must be at most ${rule.maxLength} characters`;
+      }
+      if (rule.pattern && !rule.pattern.test(value)) {
+        return rule.message || `${name} is invalid`;
+      }
+      return '';
+    },
+    [rules]
+  );
 
-    setErrors(newErrors);
-    return isValid;
-  }, [rules, validateField]);
+  const validate = useCallback(
+    (data: Record<string, string>): boolean => {
+      const newErrors: FieldErrors = {};
+      let isValid = true;
 
-  const validateSingle = useCallback((name: string, value: string) => {
-    const error = validateField(name, value);
-    setErrors((prev) => {
-      if (error) return { ...prev, [name]: error };
-      const { [name]: _, ...rest } = prev;
-      return rest;
-    });
-    return error;
-  }, [validateField]);
+      for (const [name, rule] of Object.entries(rules)) {
+        const error = validateField(name, data[name] || '');
+        if (error) {
+          newErrors[name] = error;
+          isValid = false;
+        }
+      }
+
+      setErrors(newErrors);
+      return isValid;
+    },
+    [rules, validateField]
+  );
+
+  const validateSingle = useCallback(
+    (name: string, value: string) => {
+      const error = validateField(name, value);
+      setErrors((prev) => {
+        if (error) return { ...prev, [name]: error };
+        const { [name]: _, ...rest } = prev;
+        return rest;
+      });
+      return error;
+    },
+    [validateField]
+  );
 
   const clearErrors = useCallback(() => setErrors({}), []);
   const clearFieldError = useCallback((name: string) => {

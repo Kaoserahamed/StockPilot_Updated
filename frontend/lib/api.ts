@@ -29,7 +29,8 @@ export function errMsg(e: any, fallback = 'Request failed'): string {
   if (!d) return e?.message || fallback;
   if (typeof d === 'string') return d;
   if (typeof d?.detail === 'string') return d.detail;
-  if (Array.isArray(d?.detail)) return d.detail.map((x: any) => x?.msg || JSON.stringify(x)).join('; ');
+  if (Array.isArray(d?.detail))
+    return d.detail.map((x: any) => x?.msg || JSON.stringify(x)).join('; ');
   return JSON.stringify(d);
 }
 
@@ -37,6 +38,8 @@ export async function downloadBlob(path: string, filename: string) {
   const res = await api.get(path, { responseType: 'blob' });
   const url = URL.createObjectURL(new Blob([res.data]));
   const a = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
+  a.href = url;
+  a.download = filename;
+  a.click();
   URL.revokeObjectURL(url);
 }

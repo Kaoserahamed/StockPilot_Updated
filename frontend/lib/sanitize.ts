@@ -5,7 +5,11 @@ const PHONE_PATTERN = /^\+?[\d\s\-()]{7,20}$/;
 
 export function escapeHtml(text: string): string {
   const map: Record<string, string> = {
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;',
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
   };
   return text.replace(/[&<>"']/g, (c) => map[c]);
 }
