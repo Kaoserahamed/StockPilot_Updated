@@ -108,7 +108,9 @@ def create_product(
 def create_supplier(
     client: TestClient, headers: dict, company_name: str = "Acme Supplies", **extra
 ) -> dict:
-    resp = client.post(f"{API}/suppliers", json={"company_name": company_name, **extra}, headers=headers)
+    resp = client.post(
+        f"{API}/suppliers", json={"company_name": company_name, **extra}, headers=headers
+    )
     assert resp.status_code == 201, resp.text
     return resp.json()
 
@@ -283,4 +285,3 @@ def seed_shop(
         customer=customer,
         stock_quantity=quantity,
     )
-

@@ -83,7 +83,7 @@ def test_disabled_tracker_counts_without_emitting(tracker) -> None:
 
 
 def test_a_failing_sink_never_breaks_the_request(tracker) -> None:
-    def exploding_sink(report):  # noqa: ARG001 - signature required by the API
+    def exploding_sink(report):
         raise OSError("sink down")
 
     tracker.add_sink(exploding_sink)

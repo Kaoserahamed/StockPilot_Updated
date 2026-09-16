@@ -40,7 +40,7 @@ from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
-import app.models  # noqa: E402,F401  (importing registers every mapper)
+import app.models  # noqa: E402  (importing registers every mapper)
 from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
