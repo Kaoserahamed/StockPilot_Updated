@@ -32,11 +32,15 @@ def test_only_owners_change_settings_and_plans(client: TestClient) -> None:
     manager_headers = factories.login(client, manager["user"]["email"])
 
     assert (
-        client.patch(f"{API}/settings", json={"currency": "USD"}, headers=manager_headers).status_code
+        client.patch(
+            f"{API}/settings", json={"currency": "USD"}, headers=manager_headers
+        ).status_code
         == 403
     )
     assert (
-        client.patch(f"{API}/subscription", json={"plan": "pro"}, headers=manager_headers).status_code
+        client.patch(
+            f"{API}/subscription", json={"plan": "pro"}, headers=manager_headers
+        ).status_code
         == 403
     )
 
@@ -48,15 +52,11 @@ def test_subscription_reports_usage_and_plan_changes(client: TestClient) -> None
     assert status["product_count"] >= 1
     assert status["employee_count"] >= 1
 
-    upgraded = client.patch(
-        f"{API}/subscription", json={"plan": "pro"}, headers=shop.headers
-    )
+    upgraded = client.patch(f"{API}/subscription", json={"plan": "pro"}, headers=shop.headers)
     assert upgraded.status_code == 200, upgraded.text
     assert upgraded.json()["plan"] == "pro"
 
-    invalid = client.post(
-        f"{API}/subscription", json={"plan": "enterprise"}, headers=shop.headers
-    )
+    invalid = client.post(f"{API}/subscription", json={"plan": "enterprise"}, headers=shop.headers)
     assert invalid.status_code in (404, 405, 422)
 
     bad = client.patch(f"{API}/subscription", json={"plan": "enterprise"}, headers=shop.headers)

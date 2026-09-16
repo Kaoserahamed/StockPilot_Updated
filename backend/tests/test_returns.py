@@ -15,9 +15,7 @@ def _sale_with_items(client: TestClient, shop, qty=4):
     return sale, detail
 
 
-def test_partial_return_refunds_restocks_and_flags_sale(
-    client: TestClient, shop
-) -> None:
+def test_partial_return_refunds_restocks_and_flags_sale(client: TestClient, shop) -> None:
     sale, detail = _sale_with_items(client, shop)
     before = shop.qty(client)
     item_id = detail["items"][0]["id"]
@@ -68,9 +66,7 @@ def test_return_lists_and_rejects_over_return(client: TestClient, shop) -> None:
     assert "returnable" in greedy.json()["detail"]
 
 
-def test_return_rejects_unknown_sale_item_and_cancelled_sale(
-    client: TestClient, shop
-) -> None:
+def test_return_rejects_unknown_sale_item_and_cancelled_sale(client: TestClient, shop) -> None:
     sale, _ = _sale_with_items(client, shop)
     unknown = client.post(
         f"{API}/returns",
@@ -108,7 +104,7 @@ def test_cashier_cannot_accept_returns(client: TestClient, shop) -> None:
         json={
             "sale_id": sale["id"],
             "reason": "x",
-            "items": [{"sale_item_id": detail['items'][0]['id'], "quantity": 1}],
+            "items": [{"sale_item_id": detail["items"][0]["id"], "quantity": 1}],
         },
         headers=cashier,
     )

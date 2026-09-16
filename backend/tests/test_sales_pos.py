@@ -7,9 +7,7 @@ from tests import factories
 API = "/api/v1"
 
 
-def test_full_cash_checkout_reduces_stock_and_marks_paid(
-    client: TestClient, shop
-) -> None:
+def test_full_cash_checkout_reduces_stock_and_marks_paid(client: TestClient, shop) -> None:
     before = shop.qty(client)
     sale = factories.checkout(
         client, shop.headers, [{"product_id": shop.product_id, "quantity": 2}]
@@ -21,9 +19,7 @@ def test_full_cash_checkout_reduces_stock_and_marks_paid(
     assert shop.qty(client) == before - 2
 
 
-def test_credit_checkout_leaves_customer_outstanding(
-    client: TestClient, shop
-) -> None:
+def test_credit_checkout_leaves_customer_outstanding(client: TestClient, shop) -> None:
     sale = factories.checkout(
         client,
         shop.headers,
@@ -93,9 +89,7 @@ def test_inactive_product_is_blocked_at_checkout(client: TestClient, shop) -> No
     assert "inactive" in resp.json()["detail"].lower()
 
 
-def test_pos_search_only_lists_active_matching_products(
-    client: TestClient, shop
-) -> None:
+def test_pos_search_only_lists_active_matching_products(client: TestClient, shop) -> None:
     hits = client.get(f"{API}/pos/search?q=Rice", headers=shop.headers).json()
     assert any(h["id"] == shop.product_id for h in hits)
 

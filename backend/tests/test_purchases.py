@@ -11,9 +11,7 @@ def _items(shop, qty=4, cost=60):
     return [{"product_id": shop.product_id, "quantity": qty, "unit_cost": cost}]
 
 
-def test_purchase_receives_stock_and_totals_are_computed(
-    client: TestClient, shop
-) -> None:
+def test_purchase_receives_stock_and_totals_are_computed(client: TestClient, shop) -> None:
     before = shop.qty(client)
     purchase = factories.create_purchase(
         client,
@@ -29,9 +27,7 @@ def test_purchase_receives_stock_and_totals_are_computed(
     assert shop.qty(client) == before + 4
 
 
-def test_unpaid_purchase_is_flagged_and_supplier_owes_balance(
-    client: TestClient, shop
-) -> None:
+def test_unpaid_purchase_is_flagged_and_supplier_owes_balance(client: TestClient, shop) -> None:
     purchase = factories.create_purchase(client, shop.headers, shop.supplier_id, _items(shop))
     assert purchase["payment_status"] == "unpaid"
 
@@ -40,9 +36,7 @@ def test_unpaid_purchase_is_flagged_and_supplier_owes_balance(
     assert mine["outstanding_balance"] >= purchase["total_amount"]
 
 
-def test_partial_payment_then_full_payment_transitions_status(
-    client: TestClient, shop
-) -> None:
+def test_partial_payment_then_full_payment_transitions_status(client: TestClient, shop) -> None:
     purchase = factories.create_purchase(
         client, shop.headers, shop.supplier_id, _items(shop, qty=10, cost=100)
     )
@@ -92,9 +86,7 @@ def test_cancel_reverses_stock_and_marks_status(client: TestClient, shop) -> Non
     )
     assert shop.qty(client) == before + 3
 
-    cancelled = client.post(
-        f"{API}/purchases/{purchase['id']}/cancel", headers=shop.headers
-    )
+    cancelled = client.post(f"{API}/purchases/{purchase['id']}/cancel", headers=shop.headers)
     assert cancelled.status_code == 200, cancelled.text
     assert cancelled.json()["status"] == "cancelled"
     assert shop.qty(client) == before
@@ -110,9 +102,7 @@ def test_cancel_reverses_stock_and_marks_status(client: TestClient, shop) -> Non
     )
 
 
-def test_purchase_validates_supplier_product_and_amounts(
-    client: TestClient, shop
-) -> None:
+def test_purchase_validates_supplier_product_and_amounts(client: TestClient, shop) -> None:
     bad_supplier = client.post(
         f"{API}/purchases",
         json={"supplier_id": 999999, "items": _items(shop)},
@@ -151,8 +141,6 @@ def test_cashier_cannot_create_or_pay_purchases(client: TestClient, shop) -> Non
         json={"supplier_id": shop.supplier_id, "items": _items(shop)},
         headers=cashier,
     )
-    pay = client.post(
-        f"{API}/purchases/{purchase['id']}/pay", json={"amount": 10}, headers=cashier
-    )
+    pay = client.post(f"{API}/purchases/{purchase['id']}/pay", json={"amount": 10}, headers=cashier)
     assert create.status_code == 403
     assert pay.status_code == 403
