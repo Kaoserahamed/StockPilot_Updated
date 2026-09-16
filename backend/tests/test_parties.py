@@ -46,7 +46,12 @@ def test_supplier_can_be_updated_and_deactivated(client: TestClient) -> None:
 
 def test_unknown_supplier_update_returns_not_found(client: TestClient) -> None:
     headers = factories.register_owner(client, email="sup3@test.com")
-    assert client.patch("/api/v1/suppliers/999999", json={"company_name": "X"}, headers=headers).status_code == 404
+    assert (
+        client.patch(
+            "/api/v1/suppliers/999999", json={"company_name": "X"}, headers=headers
+        ).status_code
+        == 404
+    )
 
 
 def test_supplier_purchase_history_and_payable_balance(client: TestClient) -> None:
@@ -85,6 +90,8 @@ def test_suppliers_are_isolated_between_businesses(client: TestClient) -> None:
         client.get(f"/api/v1/suppliers/{supplier['id']}/purchases", headers=second).status_code
         == 404
     )
+
+
 # --------------------------------------------------------------------------- #
 # Customers
 # --------------------------------------------------------------------------- #
@@ -140,9 +147,7 @@ def test_credit_sale_tracks_the_outstanding_balance(client: TestClient) -> None:
         paid_amount=0,
     )
 
-    history = client.get(
-        f"/api/v1/customers/{shop.customer_id}/sales", headers=shop.headers
-    ).json()
+    history = client.get(f"/api/v1/customers/{shop.customer_id}/sales", headers=shop.headers).json()
     assert history["customer_id"] == shop.customer_id
     assert len(history["sales"]) == 1
     assert history["sales"][0]["total_amount"] == 200

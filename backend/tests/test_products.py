@@ -111,6 +111,8 @@ def test_product_cannot_reference_another_business_category(client: TestClient) 
         headers=second,
     )
     assert resp.status_code == 400
+
+
 # --------------------------------------------------------------------------- #
 # Search and filtering (FR-5.6)
 # --------------------------------------------------------------------------- #
@@ -269,9 +271,7 @@ def test_cashier_cannot_write_to_the_catalogue(client: TestClient) -> None:
         client.patch(f"{PRODUCTS}/{product['id']}", json={"name": "X"}, headers=cashier).status_code
         == 403
     )
-    assert (
-        client.post(f"{PRODUCTS}/{product['id']}/deactivate", headers=cashier).status_code == 403
-    )
+    assert client.post(f"{PRODUCTS}/{product['id']}/deactivate", headers=cashier).status_code == 403
     assert client.post(f"{PRODUCTS}/{product['id']}/activate", headers=cashier).status_code == 403
 
     # reads remain available to a cashier (needed for POS)

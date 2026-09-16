@@ -43,9 +43,7 @@ def test_low_and_out_of_stock_alerts_are_consistent(client: TestClient, shop) ->
     assert any(r["id"] == shop.product_id for r in low)
 
 
-def test_manual_adjustment_moves_stock_and_writes_ledger(
-    client: TestClient, shop
-) -> None:
+def test_manual_adjustment_moves_stock_and_writes_ledger(client: TestClient, shop) -> None:
     headers = shop.headers
     before = shop.qty(client)
 
@@ -60,17 +58,12 @@ def test_manual_adjustment_moves_stock_and_writes_ledger(
     assert any(t["quantity_change"] == 5 and t["tx_type"] == "adjustment" for t in ledger)
 
 
-def test_adjustment_can_drive_stock_negative_and_is_still_audited(
-    client: TestClient, shop
-) -> None:
+def test_adjustment_can_drive_stock_negative_and_is_still_audited(client: TestClient, shop) -> None:
     headers = shop.headers
     factories.adjust_stock(client, headers, shop.product_id, -999, reason="write-off")
     assert shop.qty(client) == shop.stock_quantity - 999
 
-    actions = [
-        log["action"]
-        for log in client.get("/api/v1/audit-logs", headers=headers).json()
-    ]
+    actions = [log["action"] for log in client.get("/api/v1/audit-logs", headers=headers).json()]
     assert "inventory.adjust" in actions
 
 
@@ -83,9 +76,7 @@ def test_adjustment_requires_a_reason(client: TestClient, shop) -> None:
     assert resp.status_code == 422
 
 
-def test_price_adjustment_updates_both_prices_with_history(
-    client: TestClient, shop
-) -> None:
+def test_price_adjustment_updates_both_prices_with_history(client: TestClient, shop) -> None:
     headers = shop.headers
     resp = client.post(
         f"{API}/inventory/adjust-price",
@@ -113,9 +104,7 @@ def test_price_adjustment_updates_both_prices_with_history(
     assert any(h["reason"] == "supplier hike" for h in history)
 
 
-def test_price_adjustment_rejects_noop_and_empty_payload(
-    client: TestClient, shop
-) -> None:
+def test_price_adjustment_rejects_noop_and_empty_payload(client: TestClient, shop) -> None:
     headers = shop.headers
     same = client.post(
         f"{API}/inventory/adjust-price",
