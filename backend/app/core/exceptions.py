@@ -9,6 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError as PydanticValidationError
 
+from app.core.error_tracking import get_error_tracker
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -141,8 +142,13 @@ def register_exception_handlers(app: FastAPI) -> None:
             request.url.path,
             str(exc),
         )
-        # Hide internal details from the client
+        # Correlate the crash with the request/tenant/actor and fan it out to
+        # the configured sinks (log by default, Sentry when configured).
+        report = get_error_tracker().capture(exc)
+        # Hide internal details from the client, but hand back the request id
+        # so a user can quote it in a support ticket.
         return _error_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             "An internal server error occurred. Please try again later.",
+            request_id=report.request_id or getattr(request.state, "request_id", None),
         )

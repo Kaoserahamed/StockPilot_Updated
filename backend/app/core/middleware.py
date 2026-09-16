@@ -14,6 +14,8 @@ from collections.abc import Callable
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.core.config import settings
+from app.core.error_tracking import get_error_tracker
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -92,7 +94,12 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         request.state.request_id = req_id
         start = time.perf_counter()
 
-        response = await call_next(request)
+        # Bind route metadata so any unhandled exception is reported with the
+        # exact method/path/request-id that produced it.
+        with get_error_tracker().route(
+            method=request.method, path=request.url.path, request_id=req_id
+        ):
+            response = await call_next(request)
 
         elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
         response.headers["X-Request-Id"] = req_id
@@ -104,7 +111,12 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             request.url.path,
             response.status_code,
             elapsed_ms,
-            extra={"request_id": req_id, "status": response.status_code, "ms": elapsed_ms},
+            extra={
+                "request_id": req_id,
+                "status": response.status_code,
+                "ms": elapsed_ms,
+                "release": settings.release_version,
+            },
         )
         return response
 

@@ -16,7 +16,7 @@ def test_create_supplier_with_contact_details(client: TestClient) -> None:
             "company_name": "Acme Supplies",
             "contact_person": "Rahim",
             "phone": "01711111111",
-            "email": "sales@acme.test",
+            "email": "sales@acme.example.com",
             "address": "Industrial Area",
         },
         headers=headers,

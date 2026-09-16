@@ -71,8 +71,11 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     user = find_user_by_username(db, payload.username)
     if not user or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    if not user.is_active:
-        raise HTTPException(status_code=403, detail="User deactivated")
+    from app.models.user import UserBusiness as _UB
+
+    memberships = db.query(_UB).filter(_UB.user_id == user.id).all()
+    if not user.is_active or not any(m.is_active for m in memberships):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     access_token = create_access_token(str(user.id))
     refresh_token = create_refresh_token(str(user.id))
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)

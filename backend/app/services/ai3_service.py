@@ -45,20 +45,22 @@ def detect_anomalies(db: Session, business_id: int) -> dict:
     from app.services import finance_service as ff
 
     # Light: only what the algorithm needs (no full-row hydration).
-    trend_rows = (
-        db.query(
-            _f.date(Sale.created_at).label("d"),
-            _f.count(Sale.id),
-            _f.coalesce(_f.sum(Sale.total_amount), 0),
-        )
+    date_rows = (
+        db.query(Sale.created_at, Sale.total_amount)
         .filter(*ff._sale_range_filters(business_id, None, None))
-        .group_by(_f.date(Sale.created_at))
-        .order_by(_f.date(Sale.created_at).asc())
+        .order_by(Sale.created_at.asc())
+        .limit(ff.MAX_SALE_IDS)
         .all()
     )
+    by_day: dict[str, dict] = {}
+    for created_at, total in date_rows:
+        day = created_at.strftime("%Y-%m-%d")
+        cell = by_day.setdefault(day, {"orders": 0, "revenue": 0.0})
+        cell["orders"] += 1
+        cell["revenue"] += float(total or 0)
     trend = [
-        {"period": str(d), "orders": int(o or 0), "revenue": float(r or 0)}
-        for d, o, r in trend_rows
+        {"period": day, "orders": cell["orders"], "revenue": round(cell["revenue"], 2)}
+        for day, cell in sorted(by_day.items())
     ]
     anomalies: list[dict] = []
     if len(trend) >= 4:

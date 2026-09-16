@@ -202,8 +202,8 @@ def test_price_change_writes_an_audit_entry(client: TestClient) -> None:
 
     logs = client.get("/api/v1/audit-logs", headers=headers).json()
     entry = next(log for log in logs if log["action"] == "product.price_change")
-    assert entry["old_value"] == "100"
-    assert entry["new_value"] == "120"
+    assert float(entry["old_value"]) == 100
+    assert float(entry["new_value"]) == 120
 
 
 def test_unchanged_price_does_not_write_an_audit_entry(client: TestClient) -> None:

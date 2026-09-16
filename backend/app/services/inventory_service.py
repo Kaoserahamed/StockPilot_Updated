@@ -29,7 +29,7 @@ def apply_stock_change(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     new_qty = (product.quantity_on_hand or 0) + quantity_change
-    if new_qty < 0:
+    if new_qty < 0 and tx_type != "adjustment":
         raise HTTPException(status_code=400, detail="Insufficient stock: would go negative")
     product.quantity_on_hand = new_qty
     tx = InventoryTransaction(

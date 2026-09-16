@@ -22,12 +22,13 @@ def _check(ctx: Context):
 @router.get("", response_model=list[ExpenseOut])
 def list_all(
     ctx: Context = Depends(get_current_context),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db),  # noqa: ARG001 - guard below uses ctx only
     category: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
 ):
     """FR-15.5: expense history with optional category/date filters."""
+    _check(ctx)
     q = db.query(Expense).filter(Expense.business_id == ctx.business_id)
     if category:
         q = q.filter(Expense.category == category.lower())

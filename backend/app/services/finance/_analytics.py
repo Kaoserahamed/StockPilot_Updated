@@ -12,17 +12,11 @@ from app.services.finance._utils import REVENUE_STATUSES, _sale_range_filters
 def top_products(db: Session, business_id: int, start, end, limit: int = 10) -> list[dict]:
     """FR-20: top products by quantity sold with revenue and profit."""
     net_qty = SaleItem.quantity - SaleItem.returned_qty
-    avg = (
-        dict(
-            db.query(
-                Purchase.supplier_id,  # placeholder — we need product avg cost
-            )
-            .filter()
-            .all()
-        )
-        if False
-        else {}
-    )
+    # Average purchase cost per product (for the profit estimate); {} when
+    # never purchased so revenue alone still ranks the product.
+    from app.services.finance._missing import avg_costs
+
+    avg = avg_costs(db, business_id)
     # Use purchase_price from product for COGS approximation
     rows = (
         db.query(

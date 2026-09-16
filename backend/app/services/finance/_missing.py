@@ -15,17 +15,27 @@ def revenue_trend_alias(db, business_id, start, end, bucket="day"):
 
 
 def sales_trend(db: Session, business_id: int, start, end) -> list[dict]:
-    period = func.to_char(Sale.created_at, "YYYY-MM-DD").label("period")
-    rows = (
-        db.query(period, func.count(Sale.id), func.coalesce(func.sum(Sale.total_amount), 0))
+    """Daily sales trend. Grouped in Python: portable across SQLite/Postgres."""
+    from app.services.finance._revenue import _bucket_key
+    from app.services.finance._utils import MAX_SALE_IDS, MAX_TREND_BUCKETS
+
+    pairs = (
+        db.query(Sale.created_at, Sale.total_amount)
         .filter(*_sale_range_filters(business_id, start, end))
-        .group_by(period)
-        .order_by(period)
+        .order_by(Sale.created_at.asc())
+        .limit(MAX_SALE_IDS)
         .all()
     )
+    totals: dict[str, float] = {}
+    counts: dict[str, int] = {}
+    for created_at, total in pairs:
+        key = _bucket_key(created_at, "day")
+        totals[key] = totals.get(key, 0.0) + float(total or 0)
+        counts[key] = counts.get(key, 0) + 1
     return [
-        {"period": str(r[0]), "orders": int(r[1] or 0), "revenue": float(r[2] or 0)} for r in rows
-    ]
+        {"period": key, "orders": counts[key], "revenue": round(totals[key], 2)}
+        for key in sorted(totals)
+    ][:MAX_TREND_BUCKETS]
 
 
 def _cogs_total(db: Session, business_id: int, start, end) -> float:

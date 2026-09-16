@@ -41,6 +41,14 @@ class Settings(BaseSettings):
 
     # --- Environment ---
     environment: str = "development"  # development, staging, production
+    release_version: str = "dev"  # stamped on logs and error reports
+
+    # --- Observability / error tracking ---
+    # When disabled, failures are still counted in-process but never emitted
+    # to a sink (useful for noisy local runs).
+    error_tracking_enabled: bool = True
+    # Optional crash-reporter DSN (Sentry-compatible). Empty => log sink only.
+    sentry_dsn: str | None = None
 
     # --- AI (Phase 5) ---
     # An empty key disables AI features: the endpoints then return the

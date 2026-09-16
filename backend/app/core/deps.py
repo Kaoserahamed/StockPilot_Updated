@@ -3,6 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.error_tracking import bind_actor
 from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.user import User, UserBusiness
@@ -60,6 +61,20 @@ def get_current_context(
             raise HTTPException(status_code=403, detail="No access to this business")
     else:
         membership = memberships[0]
+    # Bind the resolved actor so error reports and logs carry tenant + user.
+    # Also mirror it onto the tracker snapshot: ``bind_actor`` writes a fresh
+    # ContextVar dict that the middleware resets on exit, while the tracker
+    # keeps ``last_route`` for post-response correlation.
+    bind_actor(user_id=user.id, business_id=membership.business_id)
+    try:
+        from app.core.error_tracking import get_error_tracker as _get_tracker
+
+        _trk = _get_tracker()
+        _actor = dict(_trk.last_route) if isinstance(_trk.last_route, dict) else {}
+        _actor.update({"user_id": user.id, "business_id": membership.business_id})
+        _trk.last_route = _actor
+    except Exception:
+        pass
     return Context(user=user, business_id=membership.business_id, role=membership.role)
 
 
