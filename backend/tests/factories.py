@@ -11,12 +11,20 @@ failure inside the test body.
 
 from __future__ import annotations
 
+import os
+import secrets
 from dataclasses import dataclass
 
 from fastapi.testclient import TestClient
 
 API = "/api/v1"
-DEFAULT_PASSWORD = "secret123"
+
+# Test password is sourced from the environment so no literal credential is
+# committed. It is generated once at import time (and stable for the process)
+# and can be overridden with TEST_DEFAULT_PASSWORD for reproducible runs.
+# SECURITY: No hardcoded password - either reads from env var or generates
+# a cryptographically secure random token via secrets.token_urlsafe(16).
+DEFAULT_PASSWORD: str = os.getenv("TEST_DEFAULT_PASSWORD") or secrets.token_urlsafe(16)
 
 
 # --------------------------------------------------------------------------- #

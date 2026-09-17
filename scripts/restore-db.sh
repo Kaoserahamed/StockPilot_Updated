@@ -11,7 +11,8 @@ DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_NAME:-stockpilot}"
 DB_USER="${DB_USER:-stockpilot}"
 
-# Fail fast: no default password is provided (see backup-db.sh).
+# SECURITY: No default password is provided - script will fail if DB_PASSWORD
+# is not set in the environment. PGPASSWORD is ONLY sourced from DB_PASSWORD.
 : "${DB_PASSWORD:?DB_PASSWORD is not set. Export it before running this script; no default password is provided.}"
 export PGPASSWORD="${DB_PASSWORD}"
 

@@ -14,9 +14,10 @@ BACKUP_DIR="${1:-./backups}"
 DATE=$(date +%Y%m%d_%H%M%S)
 FILENAME="stockpilot_${DATE}.sql.gz"
 
-# Fail fast: there is deliberately NO default password. A silent placeholder
+# SECURITY: There is deliberately NO default password. A silent placeholder
 # fallback would produce confusing authentication errors against production
 # and leak a weak credential into shell history and process listings.
+# PGPASSWORD is ONLY sourced from the DB_PASSWORD env var, never defaulted.
 : "${DB_PASSWORD:?DB_PASSWORD is not set. Export it before running this script; no default password is provided.}"
 export PGPASSWORD="${DB_PASSWORD}"
 

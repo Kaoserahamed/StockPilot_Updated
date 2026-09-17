@@ -165,7 +165,8 @@ class ErrorTracker:
     # ----------------------------------------------------------------- capture
     def capture(self, exc: BaseException) -> ErrorReport:
         """Record an unhandled exception and fan it out to every sink."""
-        ctx = dict(_actor_context.get())
+        ctx_value = _actor_context.get()
+        ctx = dict(ctx_value) if ctx_value is not None else {}
         last = getattr(self, "last_route", None) or {}
         for key in ("path", "method", "request_id", "business_id", "user_id"):
             if ctx.get(key) is None and last.get(key) is not None:
