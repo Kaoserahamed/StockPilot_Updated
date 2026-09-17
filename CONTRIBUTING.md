@@ -10,11 +10,16 @@ how work is organised, and the rules a change must satisfy before it is merged.
 1. **Every behaviour change ships with a test.** A pull request that changes an API route,
    a service, or a React component without a corresponding test update will not be merged.
 2. **One logical change per commit.** Do not mix formatting, refactoring, and features.
-3. **CI must be green.** `lint`, `typecheck`, `test`, and `build` all run on every PR.
+3. **CI must be green.** `lint`, `typecheck`, both test suites (with the coverage floors),
+   `build`, the dependency audits, the secret scan and the container builds run on every PR.
 4. **Never commit secrets or build artifacts.** `.env`, `*.db`, `node_modules/`, `.next/`,
-   `__pycache__/` are ignored - keep it that way.
+   `__pycache__/` are ignored - keep it that way. `backend/scripts/scan_secrets.py` fails the
+   build on credential-looking literals; use a placeholder, or `pragma: allowlist secret`
+   for a genuine non-secret.
 5. **Keep the tracking document current.** Update `IMPLEMENTATION_PLAN.md` when you complete
    a milestone item.
+6. **Releases are cut from `main` only**, with a green CI and a dated `CHANGELOG.md` entry.
+   The tag-triggered pipeline is documented in [`docs/RELEASING.md`](docs/RELEASING.md).
 
 ---
 
@@ -55,19 +60,30 @@ make test        # pytest + vitest
 ## 3. Running the checks locally (same commands CI runs)
 
 ```bash
-# Backend
+# Everything at once, from the repository root:
+make verify
+
+# Backend (isolated virtualenv)
 cd backend
 ruff check app tests
 ruff format --check app tests
 mypy app
-pytest --cov=app --cov-report=term-missing
+pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+
+# The same suite from the repository root (root pyproject.toml):
+pip install -r requirements.txt -r requirements-dev.txt && pytest --cov
 
 # Frontend
 cd frontend
 npm run lint
 npm run typecheck
-npm test -- --run
+npm run test:coverage          # vitest, thresholds enforced
+npm run format:check
 npm run build
+
+# Hardening checks
+python backend/scripts/scan_secrets.py
+python backend/scripts/generate_lockfile.py   # only when requirements.txt changed
 ```
 
 If these pass locally, CI will pass.
@@ -104,7 +120,10 @@ docs: document the fresh-clone test command
 - [ ] `ruff check` and `ruff format --check` pass
 - [ ] `mypy app` passes
 - [ ] `pytest --cov=app --cov-report=term-missing` passes (no live DB required)
-- [ ] `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` pass
+- [ ] `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run build` pass
+- [ ] Backend coverage stays at or above 80%; frontend coverage respects its thresholds
+- [ ] `python backend/scripts/scan_secrets.py` reports nothing
+- [ ] `backend/requirements.lock.txt` regenerated when `requirements.txt` changed
 - [ ] New behaviour has a test that fails without the change
 - [ ] `CHANGELOG.md` updated under `Unreleased`
 - [ ] `IMPLEMENTATION_PLAN.md` checkboxes updated

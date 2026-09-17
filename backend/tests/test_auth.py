@@ -218,6 +218,12 @@ def test_password_reset_flow_changes_the_password(client: TestClient) -> None:
     assert new.status_code == 200
 
 
+# Throw-away passwords for the reset flow. They exist only inside a test run and
+# are not credentials; the repository secret scan is allowlisted explicitly.
+FIRST_RESET_PASSWORD = "first-pass-1"  # pragma: allowlist secret
+SECOND_RESET_PASSWORD = "second-pass-2"  # pragma: allowlist secret
+
+
 def test_reset_token_is_single_use(client: TestClient) -> None:
     _register(client)
     token = client.post("/api/v1/auth/forgot-password", json={"username": "new@test.com"}).json()[
@@ -225,12 +231,14 @@ def test_reset_token_is_single_use(client: TestClient) -> None:
     ]
 
     first = client.post(
-        "/api/v1/auth/reset-password", json={"token": token, "new_password": "first-pass-1"}
+        "/api/v1/auth/reset-password",
+        json={"token": token, "new_password": FIRST_RESET_PASSWORD},
     )
     assert first.status_code == 200
 
     again = client.post(
-        "/api/v1/auth/reset-password", json={"token": token, "new_password": "second-pass-2"}
+        "/api/v1/auth/reset-password",
+        json={"token": token, "new_password": SECOND_RESET_PASSWORD},
     )
     assert again.status_code == 400
 

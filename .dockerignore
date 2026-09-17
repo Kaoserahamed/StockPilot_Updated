@@ -1,0 +1,46 @@
+# Build context guard for the repository-root `Dockerfile`.
+# Keep the context small and free of host-specific state; the image only needs
+# `backend/`.
+.git
+.github
+.devcontainer
+docs
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.venv/
+**/venv/
+**/.coverage
+**/coverage.xml
+**/htmlcov/
+
+# Tests and tooling are not shipped in the runtime image (run them from a
+# virtualenv - see README "Quality gates" / docs/TESTING.md).
+backend/tests/
+backend/scripts/
+
+# Node / Next.js (a different image builds the frontend)
+frontend/node_modules/
+frontend/.next/
+frontend/coverage/
+
+# Secrets and local databases
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.production.example
+*.pem
+*.key
+**/*.db
+**/*.sqlite3
+**/uploads/logos/
+
+# Editors / OS noise
+.vscode/
+.idea/
+**/.DS_Store
+**/Thumbs.db

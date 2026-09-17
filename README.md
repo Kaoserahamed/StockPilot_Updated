@@ -18,7 +18,16 @@ TypeScript + TanStack Query + Tailwind CSS** on the frontend.
 git clone https://github.com/Kaoserahamed/StockPilot_Updated.git
 cd StockPilot_Updated
 
-# --- Backend: install + run the full test suite (in-memory SQLite, no DB required) ---
+# --- One command per stack, and one for every gate ---
+make install            # backend virtualenv (pinned deps) + frontend npm ci
+make verify             # lint, types, tests and build - the exact CI commands
+
+# --- Backend suite (in-memory SQLite; no database, no network, no API key) ---
+pip install -r requirements.txt -r requirements-dev.txt   # root -> backend manifests
+pytest                                                    # backend/tests, from the root
+pytest --cov                                              # ... and enforce the 80% floor
+
+# Equivalent, with an isolated virtualenv exactly like CI:
 cd backend
 python -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
@@ -55,12 +64,37 @@ cp .env.example .env.local
 npm run dev                            # http://localhost:3000
 ```
 
+### Containers
+
+```bash
+# Whole stack (PostgreSQL + API + web) in one command:
+cp .env.example .env                   # set POSTGRES_PASSWORD, SECRET_KEY, NEXT_PUBLIC_API_URL
+docker compose -f docker-compose.prod.yml up --build
+
+# Or just the API image, built from the repository root with locked dependencies:
+docker build -t stockpilot-api:local .
+docker run --rm -p 8000:8000 --env-file .env stockpilot-api:local
+curl -fsS http://localhost:8000/health
+```
+
+### Dev container (VS Code)
+
+Open the repository and run **Dev Containers: Reopen in Container**.
+`.devcontainer/post-create.sh` installs both stacks from the committed
+manifests and runs the backend suite once, so the container is ready to work in
+on first launch - no local Python or Node toolchain required. Ports `3000`
+(frontend), `8000` (API) and `5432` (PostgreSQL) are forwarded automatically.
+
 ---
 
 ## Repository layout
 
 ```text
 StockPilot_Updated/
+|-- pyproject.toml      # root pytest / coverage / ruff / mypy config (gates run from here)
+|-- requirements.txt    # root manifest -> backend/requirements.txt
+|-- Dockerfile          # production API image (installs from the committed lockfile)
+|-- .devcontainer/      # one-click dev environment (Python 3.11 + Node 20)
 |-- backend/            # FastAPI service
 |   |-- app/api/        #   HTTP layer: health + versioned routers (thin)
 |   |-- app/core/       #   config, security, dependencies, middleware, logging, errors
@@ -77,9 +111,10 @@ StockPilot_Updated/
 |   |-- lib/            #   api client, auth context, sanitisation, store
 |   |-- services/       #   typed API service functions per domain
 |   `-- types/          #   shared TypeScript domain types
-|-- docs/               # API reference, architecture, runbook, testing, requirements
+|-- docs/               # API reference, architecture, runbook, testing, releasing
 |-- scripts/            # backup / restore / maintenance (fail-fast, no default secrets)
-|-- .github/workflows/  # CI (lint, typecheck, test, build, dependency audit)
+|-- .github/workflows/  # CI: lint, types, tests, coverage, audits, secret scan,
+|                       #     container builds and tag-triggered releases
 `-- IMPLEMENTATION_PLAN.md
 ```
 
@@ -132,7 +167,7 @@ A convenience template covering both stacks lives at the repository root:
 
 ## Quality gates
 
-Everything below runs on every pull request via
+Everything below runs on every pull request, and again on `main`, via
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
 
 ```bash
@@ -140,21 +175,36 @@ Everything below runs on every pull request via
 ruff check app tests
 ruff format --check app tests
 mypy app
-pytest --cov=app --cov-report=term-missing
+pytest --cov=app --cov-report=term-missing --cov-fail-under=80
 
 # frontend
 npm run lint
 npm run typecheck
-npm test -- --run
+npm run test:coverage          # vitest, with coverage thresholds
+npm run format:check
 npm run build
 
-# supply chain
+# supply chain & hardening
 pip-audit -r requirements.txt
 npm audit --audit-level=high
+python backend/scripts/scan_secrets.py     # fails on committed credentials
+pip install -r backend/requirements.lock.txt   # proves the lockfile installs
+docker build .                             # every Dockerfile is built in CI
 ```
+
+| Gate | Floor |
+|------|-------|
+| Backend test coverage | 80% of `backend/app` (`fail_under` in `pyproject.toml` **and** `--cov-fail-under` in CI) |
+| Frontend coverage | Vitest thresholds over `lib/`, `hooks/`, `services/`, `components/` |
+| Backend suite | must pass on in-memory SQLite, no external services |
+| Dependency audit | `pip-audit` and `npm audit --audit-level=high` must be clean |
+| Secret scan | `backend/scripts/scan_secrets.py` must report nothing |
 
 Pre-commit hooks mirror the lint and format rules:
 `pip install pre-commit && pre-commit install`.
+
+Version tags publish the API image to GHCR and open a GitHub Release - see
+[`docs/RELEASING.md`](docs/RELEASING.md). Deploying stays a manual step.
 
 ---
 

@@ -65,7 +65,8 @@ def resolve_pins() -> list[str]:
             "-r",
             str(REQUIREMENTS),
         ]
-        subprocess.run(command, check=True, cwd=BACKEND_DIR)  # noqa: S603
+        # The command is a fixed list built here - no shell, no untrusted input.
+        subprocess.run(command, check=True, cwd=BACKEND_DIR)
         report = json.loads(report_path.read_text(encoding="utf-8"))
 
     pins: set[str] = set()

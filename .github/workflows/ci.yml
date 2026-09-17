@@ -1,11 +1,17 @@
 ﻿name: CI
 
-# Gates every pull request before it can merge, and re-verifies main after merge.
-# There is intentionally NO deploy job in this repository.
+# Gates every pull request before it can merge, re-verifies main after merge,
+# proves a fresh clone installs from the committed lockfile, scans the tree for
+# committed credentials, builds every container image, and - on a version tag -
+# publishes the release image to GHCR together with a GitHub Release.
+#
+# Deploying is deliberately still a manual, reviewed step (docs/RUNBOOK.md):
+# nothing in this repository pushes to a production environment on its own.
 on:
   pull_request:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -186,3 +192,148 @@ jobs:
 
       - name: Audit dependencies
         run: npm audit --audit-level=high
+
+  # ---------------------------------------------------------------------------
+  # Backend: prove a fresh clone installs from the committed lockfile
+  # ---------------------------------------------------------------------------
+  backend-reproducible-install:
+    name: backend / reproducible install
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: sqlite://
+      SECRET_KEY: ci-only-secret-not-used-in-production
+      ENVIRONMENT: test
+      JSON_LOGS: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install the locked runtime closure
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -r requirements.lock.txt
+
+      - name: Add the test tooling
+        run: .venv/bin/python -m pip install -r requirements-dev.txt
+
+      - name: Import the app and run the suite against the locked closure
+        run: |
+          .venv/bin/python -c "import app.main; print('app imports from locked pins')"
+          .venv/bin/python -m pytest -q
+
+  # ---------------------------------------------------------------------------
+  # Security: fail the build when a credential-looking literal is committed
+  # ---------------------------------------------------------------------------
+  backend-secret-scan:
+    name: backend / secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Scan tracked files for credential literals
+        run: python backend/scripts/scan_secrets.py
+
+  # ---------------------------------------------------------------------------
+  # Containers: every Dockerfile in the repository must build
+  # ---------------------------------------------------------------------------
+  docker:
+    name: containers / build images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the API image from the repository root (locked pins)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: stockpilot-api:ci
+
+      - name: Build the compose API image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          tags: stockpilot-api-compose:ci
+
+      - name: Build the frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          tags: stockpilot-web:ci
+
+  # ---------------------------------------------------------------------------
+  # Release: on a version tag, publish the image to GHCR + a GitHub Release
+  # ---------------------------------------------------------------------------
+  release:
+    name: release / publish tagged build
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [backend-lint, backend-test, frontend-check, docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute the (lowercase) image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Derive image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      - name: Build and push the API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Publish the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true

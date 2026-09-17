@@ -28,16 +28,18 @@ def test_owner_manages_employee_lifecycle(client: TestClient) -> None:
     assert demoted.status_code == 200, demoted.text
     assert demoted.json()["role"] == "Cashier"
 
+    # Throw-away password for the reset assertion (never a real credential).
+    reset_password = "fresh-pass-1"  # pragma: allowlist secret
     reset = client.post(
         f"{API}/employees/{membership}/reset-password",
-        json={"new_password": "fresh-pass-1"},
+        json={"new_password": reset_password},
         headers=headers,
     )
     assert reset.status_code == 200, reset.text
     assert (
         client.post(
             f"{API}/auth/login",
-            json={"username": employee["user"]["email"], "password": "fresh-pass-1"},
+            json={"username": employee["user"]["email"], "password": reset_password},
         ).status_code
         == 200
     )

@@ -1,0 +1,13 @@
+# =============================================================================
+# StockPilot - repository-root convenience manifest
+#
+# The API's real, fully pinned manifest is backend/requirements.txt. This file
+# only forwards to it so a fresh clone can install from the repository root:
+#
+#     pip install -r requirements.txt
+#
+# Related files:
+#   backend/requirements.lock.txt   full transitive closure (reproducible)
+#   backend/requirements-dev.txt    pytest / ruff / mypy / pip-audit tooling
+# =============================================================================
+-r backend/requirements.txt

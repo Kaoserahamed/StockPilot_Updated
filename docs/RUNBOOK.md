@@ -11,6 +11,20 @@ every runtime (dev container, staging, prod) uses PostgreSQL.
 | Env files | `backend/.env` (from `.env.example`) | `frontend/.env.local` (from `.env.example`) |
 | Database | `docker compose -f docker-compose.dev.yml up -d db`, then `alembic upgrade head` | — (calls the API at `NEXT_PUBLIC_API_URL`) |
 
+## Releases and container images
+
+- Cut a release from `main` when CI is green: annotated tag `vX.Y.Z`, then push
+  `main` and the tag. Full checklist: [`RELEASING.md`](RELEASING.md).
+- The tag runs the `release` job in `.github/workflows/ci.yml`, which publishes
+  `ghcr.io/kaoserahamed/stockpilot_updated:<version>` and opens a GitHub Release.
+- Run a specific build:
+  `docker run --rm -p 8000:8000 --env-file .env ghcr.io/kaoserahamed/stockpilot_updated:0.1.0`
+  (the repository-root `Dockerfile` installs from `backend/requirements.lock.txt`).
+- Rollback: start the previous image tag; migrations are forward-only, so check
+  `backend/alembic/versions/` before downgrading the schema.
+- Deploying to an environment stays manual - the workflow never pushes to
+  production on its own.
+
 ## Database
 
 ```bash

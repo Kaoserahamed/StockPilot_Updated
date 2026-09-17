@@ -35,10 +35,39 @@ pytest --cov=app --cov-report=term-missing   # canonical command (also in CI)
 | `test_settings_subscription.py` | settings round-trip, plan changes, usage counters |
 | `test_ai.py` | chat/insights/forecast/reorder/anomalies offline, review workflow |
 | `test_end_to_end.py` | register → … → AI summary in one trading shop |
+| `test_logging_config.py` | JSON vs text log output, `app` correlation field, `JSON_LOGS` switch |
+| `test_dependency_manifests.py` | manifests committed, exact pins, lockfile is UTF-8 text and covers every direct pin |
+| `test_quality_gates.py` | coverage floors, CI jobs/commands, container + devcontainer artefacts, secret-scan wiring |
+| `test_secret_scan.py` | provider-token and literal detection, placeholder precision, allowlist pragma, clean-tree scan |
 
-Coverage is enforced with `--cov=app --cov-report=term-missing`; the CI job
-uploads `coverage.xml` as an artifact. The target is ≥ 80% statements on
-`app/` (routers + services).
+From the repository root, `pip install -r requirements.txt -r requirements-dev.txt`
+followed by `pytest` uses the root `pyproject.toml`
+(`testpaths = ["backend/tests"]`, `pythonpath = ["backend"]`), so the same suite
+runs with the same coverage floor without changing directory.
+
+Coverage is **enforced**, not just reported:
+
+- `backend/pyproject.toml` sets `[tool.coverage.report] fail_under = 80` and CI
+  passes `--cov-fail-under=80`, so a drop below the floor fails the build.
+- The repository-root `pyproject.toml` carries the same floor, so
+  `pytest --cov` from the root is gated too.
+- The frontend suite runs with `npm run test:coverage`; `frontend/vitest.config.ts`
+  holds the thresholds.
+- CI uploads `coverage.xml` as an artifact for every run.
+
+Frontend coverage scope: `coverage.include` measures the unit-tested modules
+(`lib/`, `hooks/`, `services/`, `components/`). The route pages under `app/` are
+verified by `tests/pages.test.ts` (render smoke tests) and by the production
+build, and are deliberately excluded from the percentage so it stays meaningful.
+
+### Committed-secret scan
+
+`backend/scripts/scan_secrets.py` fails the build on private-key blocks,
+provider tokens (AWS, Google, GitHub, Slack, Stripe), JSON Web Tokens and
+quoted literals assigned to password/secret/token names. Placeholders such as
+`changeme`, `replace-with-...` or `${DB_PASSWORD}` are ignored, and a line can
+opt out with `pragma: allowlist secret`. CI runs it on every push and
+`backend/tests/test_secret_scan.py` scans the tracked tree as part of the suite.
 
 ## Frontend (`frontend/`, Vitest + jsdom)
 
