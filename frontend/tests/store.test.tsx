@@ -101,13 +101,18 @@ describe('StoreProvider', () => {
     expect(screen.getByTestId('units').textContent).toBe('1,7');
     expect(screen.getByTestId('total').textContent).toBe('45');
 
+    // A non-positive quantity removes the line instead of storing zero.
     click('zero');
-    expect(screen.getByTestId('lines').textContent).toBe('1');
+    expect(screen.getByTestId('lines').textContent).toBe('2');
+    expect(screen.getByTestId('units').textContent).toBe('7');
 
+    // Removing an absent product is a no-op, not a crash.
     click('remove');
-    expect(screen.getByTestId('lines').textContent).toBe('');
+    expect(screen.getByTestId('lines').textContent).toBe('2');
 
-    click('add-other');
+    click('add-one');
+    expect(screen.getByTestId('lines').textContent).toBe('2,1');
+
     click('clear');
     expect(screen.getByTestId('lines').textContent).toBe('');
     expect(screen.getByTestId('total').textContent).toBe('0');
