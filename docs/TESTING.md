@@ -85,8 +85,17 @@ npm test -- --run        # single run (CI); `npm run test:watch` to iterate
 | `tests/useFormValidation.test.ts` | required/length/pattern rules, per-field clearing |
 | `tests/services.test.ts` | typed `services/` layer posts to the documented routes |
 | `tests/components.test.tsx` | `Card`/`Stat`/`Badge`/`Empty`, `Skeleton*`, `ToastProvider`, `ErrorBoundary` fallback |
+| `tests/store.test.tsx` | cart add/merge/remove/clear, `cartTotal` maths, toasts + auto-dismiss, preferences, provider guard |
+| `tests/optimisticUpdate.test.tsx` | `useOptimisticUpdate` snapshot/cancel, rollback on failure, `onSuccess`, invalidation |
 | `tests/shortcuts.test.tsx` | `useKeyboardShortcuts` fires on keydown, respects `enabled=false` |
 | `tests/pages.test.ts` | route components import (auth, POS, products, inventory) + report export paths |
+
+Coverage is enforced by `npm run test:coverage`
+(`frontend/vitest.config.ts` → `coverage.thresholds`, `all: true`): the
+percentage is computed over `components/`, `hooks/`, `lib/` and `services/`.
+The route pages in `app/` are smoke-tested by `tests/pages.test.ts` and the
+production build instead, so the number keeps measuring unit-testable logic.
+A newly added module with no tests shows up at 0% and pulls the floor down.
 
 Type and lint gates run alongside: `npm run lint`, `npm run typecheck`
 (`tsc --noEmit`), `npm run format:check`, and the `npm run build` smoke

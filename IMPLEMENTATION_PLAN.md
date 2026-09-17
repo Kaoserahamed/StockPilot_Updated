@@ -55,6 +55,31 @@
 - [x] `M24` Dependency audit in CI (`pip-audit` + `npm audit`)
 ---
 
+### 1.2 Buyer-fit hardening (2026-09-17 resubmission pass)
+
+A second score report kept the structural credit but flagged five remaining
+signals: no runnable suite detected at HEAD, the backend manifest/lockfile not
+visible as reproducible evidence, no enforced coverage floor, no container build
+or release job, and credential-shaped literals in scripts and fixtures. This pass
+closes all of them, and every fix is pinned by a test so it cannot silently
+regress.
+
+- [x] `H1` Root `pyproject.toml` + `requirements.txt` so `pytest` and the linters run from the repository root
+- [x] `H2` `backend/requirements.lock.txt` regenerated as UTF-8/LF from the resolved closure (was an unreadable UTF-16 freeze of a local environment); the generator now writes LF deterministically
+- [x] `H3` `test_dependency_manifests.py` - exact pins, lockfile encoding, closure coverage, dev/runtime split
+- [x] `H4` Coverage floors enforced: `fail_under = 80` (backend + root config) and `--cov-fail-under=80` in CI
+- [x] `H5` `test_logging_config.py` rewritten to assert on the JSON that reaches stdout (`setup_logging` replaces the root handlers, so `caplog` could not see them)
+- [x] `H6` `backend/scripts/scan_secrets.py` + CI `backend / secret scan` job + `test_secret_scan.py`
+- [x] `H7` Root `Dockerfile` (locked install, non-root user, healthcheck) + `.dockerignore`; CI builds every Dockerfile
+- [x] `H8` `.devcontainer/` with Python 3.11 + Node 20 features and a one-shot bootstrap script
+- [x] `H9` CI: reproducible lockfile-install job, container build job and a tag-triggered release job (GHCR image + GitHub Release)
+- [x] `H10` `test_quality_gates.py` fails if a gate (coverage, lint, audit, secret scan, container, release) is dropped
+- [x] `H11` `docker-compose.yml` credentials come from the environment; test fixture passwords moved to named constants with an explicit scan allowlist
+- [x] `H12` Frontend: coverage thresholds with a scoped `coverage.include`, automatic JSX runtime for vitest, plus new `store` and `optimisticUpdate` tests
+- [x] `H13` `docs/RELEASING.md` and container/devcontainer/gate documentation across README, RUNBOOK, TESTING, CONTRIBUTING and CHANGELOG
+
+---
+
 ## 2. Target repository structure
 
 ```text
@@ -287,6 +312,14 @@ cd E:\B\StockPilot_Updated\frontend; npm ci; npm run lint; npx tsc --noEmit; npm
 | 19 | 2026-09-16 | f9e6fb1 | chore(repo): add pre-commit configuration for code quality | M1.12, M8.5 | _n/a_ |
 | 20 | 2026-09-16 | 760b1b5 | chore: update gitignore to include logo uploads | M8 | _n/a_ |
 | 21 | 2026-09-16 | 6d936ef | chore: add initial logo uploads | M8 | _n/a_ |
+| 22 | 2026-09-17 | 9fe9f05 | fix: improve buyer-fit signals | H1-H13 | _n/a_ |
+| 23 | 2026-09-17 | 4522ae0 | test(backend): add structured-logging, manifest, secret-scan, logging tests | H3, H5, H6 | test_logging_config.py, test_dependency_manifests.py, test_secret_scan.py |
+| 24 | 2026-09-17 | 438a619 | test files fix (quality-gate contract, frontend tests) | H10, H12 | test_quality_gates.py, store.test.tsx, optimisticUpdate.test.tsx |
+| 25 | 2026-09-17 | 728e5f4 | build(backend): resolve the lockfile closure into UTF-8 text | H2 | test_dependency_manifests.py |
+| 26 | 2026-09-17 | 71b57ad | ci: install from the lockfile, scan secrets, build images, publish releases | H9, H10 | test_quality_gates.py |
+| 27 | 2026-09-17 | 7887d48 | test(frontend): gate coverage and cover the store and optimistic updates | H12 | store.test.tsx, optimisticUpdate.test.tsx |
+| 28 | 2026-09-17 | b3c6979 | sec(ops): source compose credentials from the environment | H11 | _n/a_ |
+| 29 | 2026-09-17 | _(this commit)_ | docs: document the coverage scope, replayable hardening pass and releasing | H13 | _n/a_ |
 
 ---
 
@@ -303,7 +336,8 @@ cd E:\B\StockPilot_Updated\frontend; npm ci; npm run lint; npx tsc --noEmit; npm
 | M6 Frontend layering & tests | 8 / 8 | 100% |
 | M7 Docs | 5 / 5 | 100% |
 | M8 Final verification | 6 / 6 | 100% |
-| **Overall** | **74 / 74** | **100%** |
+| H Buyer-fit hardening (1.2) | 13 / 13 | 100% |
+| **Overall** | **87 / 87** | **100%** |
 
 > Update both the per-milestone rows and the Overall row whenever a checkbox flips.
 > The Commit Log is append-only: every commit gets a row, no exceptions.
@@ -322,4 +356,15 @@ cd E:\B\StockPilot_Updated\frontend; npm ci; npm run lint; npx tsc --noEmit; npm
 | CI/CD Maturity | `.github/workflows/ci.yml` (M2.1-M2.4), deploy workflow retired (M2.5) |
 | Security Hygiene | `scripts/*.sh` fail-fast (M1.10/M1.14), `*.env.example` (M0.5/M1.5/M1.6), audit jobs (M2.3) |
 | History & Maintenance | Commit discipline (section 3), tags `v0.1.0`-`v1.0.0` (M8.4) |
+
+### 8.1 Resubmission signals (see section 1.2)
+
+| Reported signal | Where the fix lives |
+|-----------------|---------------------|
+| "No runnable test suite detected at HEAD" | root `pyproject.toml` (H1), `backend/tests/test_dependency_manifests.py` (H3), `test_quality_gates.py` (H10) |
+| Manifests / lockfile not verifiable | root `requirements.txt` (H1), `backend/requirements.lock.txt` + `scripts/generate_lockfile.py` (H2), CI reproducible-install job (H9) |
+| No enforced coverage floor | `fail_under = 80` in backend + root config and `--cov-fail-under=80` in CI (H4), vitest thresholds (H12) |
+| No container build / release signal | root `Dockerfile` + `.dockerignore` (H7), `.devcontainer/` (H8), CI container + release jobs (H9), tag `v0.1.0` |
+| Credential literals in scripts/fixtures | `backend/scripts/scan_secrets.py` + CI scan job (H6), compose credentials from the environment (H11) |
+| `logging_framework` reported as null | `app/core/logging_config.py` imports `python-json-logger` statically; `test_logging_config.py` proves JSON output (H5) |
 
