@@ -3,9 +3,12 @@
 The first test scans this repository exactly the way CI does, so a credential
 that lands in a commit fails the local suite as well.
 
-The negative controls below are real-looking strings that must be detected.
-Each one carries a trailing ``pragma: allowlist secret`` so the repository scan
-skips *this* file, while the string handed to ``scan_text`` stays pragma-free.
+The negative controls below are real-looking strings that must be detected. The
+provider-shaped ones are assembled from fragments at runtime (see the comment
+above the fixtures) so the repository itself never contains a scannable token;
+the generic literals carry a trailing ``pragma: allowlist secret`` so the
+repository scan skips *this* file while the string handed to ``scan_text`` stays
+pragma-free.
 """
 
 from __future__ import annotations
