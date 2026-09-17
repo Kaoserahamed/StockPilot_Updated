@@ -86,7 +86,9 @@ def resolve_pins() -> list[str]:
 def main() -> int:
     pins = resolve_pins()
     body = "\n".join(pins)
-    LOCKFILE.write_text(f"{HEADER}\n{body}\n", encoding="utf-8")
+    # newline="\n" keeps the generated file LF-only on every platform, so a
+    # Windows checkout produces the same bytes as CI and a Linux contributor.
+    LOCKFILE.write_text(f"{HEADER}\n{body}\n", encoding="utf-8", newline="\n")
     print(f"Wrote {LOCKFILE} ({len(pins)} pinned packages)")
     return 0
 
