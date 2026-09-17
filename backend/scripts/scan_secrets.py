@@ -128,9 +128,7 @@ _JSON_WEB_TOKEN = re.compile(
 )
 
 #: ``name = "value"`` / ``"name": "value"`` - quotes optional around the name.
-_CREDENTIAL_NAME = (
-    r"[A-Za-z0-9_.]*(?:password|passwd|pwd|secret|token|api[_-]?key)[A-Za-z0-9_.]*"
-)
+_CREDENTIAL_NAME = r"[A-Za-z0-9_.]*(?:password|passwd|pwd|secret|token|api[_-]?key)[A-Za-z0-9_.]*"
 _QUOTED_LITERAL = re.compile(
     rf"(?i)['\"]?(?P<name>{_CREDENTIAL_NAME})['\"]?\s*[:=]\s*"
     rf"(?P<quote>['\"])(?P<value>[^'\"\n]{{6,}})(?P=quote)"

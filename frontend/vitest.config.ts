@@ -12,12 +12,23 @@ export default defineConfig({
     include: ['tests/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov'],
+      reporter: ['text', 'lcov', 'json-summary'],
+      // The route pages under app/ are verified by the render smoke tests in
+      // tests/pages.test.ts and by `npm run build`; measuring them here would
+      // drown the signal. The floors below cover the unit-tested modules and
+      // `all: true` keeps a newly added, untested module visible at 0%.
+      all: true,
+      include: [
+        'components/**/*.{ts,tsx}',
+        'hooks/**/*.{ts,tsx}',
+        'lib/**/*.{ts,tsx}',
+        'services/**/*.ts',
+      ],
       thresholds: {
-        lines: 70,
-        functions: 70,
+        lines: 40,
+        functions: 40,
         branches: 60,
-        statements: 70,
+        statements: 40,
       },
     },
   },

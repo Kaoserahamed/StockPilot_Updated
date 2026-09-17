@@ -11,6 +11,7 @@ skips *this* file, while the string handed to ``scan_text`` stays pragma-free.
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 from types import ModuleType
 
@@ -25,11 +26,27 @@ def _load_scanner() -> ModuleType:
     spec = importlib.util.spec_from_file_location("scan_secrets", SCANNER_PATH)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
+    # dataclasses resolves annotations through sys.modules, so the module has to
+    # be registered before it is executed.
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
 
 scan_secrets = _load_scanner()
+
+# The fixtures below are assembled at runtime on purpose. Their values must look
+# exactly like real provider tokens for the detection test to mean anything, but
+# committing such a literal trips GitHub push protection (and every other
+# scanner) on each push, even though nothing here is a usable credential. Split
+# fragments keep the assertion honest without committing a scannable string.
+FAKE_AWS_KEY = "AKIA" + "IOSFODNN7EXAMPLE"
+FAKE_GOOGLE_KEY = "AIza" + "SyA0123456789abcdefghijklmnopqrstuv"
+FAKE_GITHUB_TOKEN = "ghp_" + "0123456789abcdefghijklmnopqrstuvwxyz"
+FAKE_SLACK_TOKEN = "xoxb-" + "1234567890-abcdefghijkl"
+FAKE_STRIPE_KEY = "sk_live_" + "0123456789abcdef"
+FAKE_PRIVATE_KEY_BLOCK = "-----BEGIN " + "RSA PRIVATE KEY-----"
+FAKE_JWT = "eyJhbGciOiJIUzI1NiJ9" + ".eyJzdWIiOiIxIn0" + ".abcdefghijkl"
 
 
 def test_the_repository_contains_no_credential_literals() -> None:
@@ -41,13 +58,22 @@ def test_the_repository_contains_no_credential_literals() -> None:
 @pytest.mark.parametrize(
     "line",
     [
-        'aws_key = "AKIAIOSFODNN7EXAMPLE"',  # pragma: allowlist secret
-        'google_key = "AIzaSyA0123456789abcdefghijklmnopqrstuv"',  # pragma: allowlist secret
-        'github_token = "ghp_0123456789abcdefghijklmnopqrstuvwxyz"',  # pragma: allowlist secret
-        'slack_token = "xoxb-1234567890-abcdefghijkl"',  # pragma: allowlist secret
-        'stripe_key = "sk_live_0123456789abcdef"',  # pragma: allowlist secret
-        "-----BEGIN RSA PRIVATE KEY-----",  # pragma: allowlist secret
-        'jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abcdefghijkl"',  # pragma: allowlist secret
+        f'aws_key = "{FAKE_AWS_KEY}"',
+        f'google_key = "{FAKE_GOOGLE_KEY}"',
+        f'github_token = "{FAKE_GITHUB_TOKEN}"',
+        f'slack_token = "{FAKE_SLACK_TOKEN}"',
+        f'stripe_key = "{FAKE_STRIPE_KEY}"',
+        FAKE_PRIVATE_KEY_BLOCK,
+        f'jwt = "{FAKE_JWT}"',
+    ],
+    ids=[
+        "aws-access-key-id",
+        "google-api-key",
+        "github-token",
+        "slack-token",
+        "stripe-live-key",
+        "private-key-block",
+        "json-web-token",
     ],
 )
 def test_provider_token_shapes_are_detected(line: str) -> None:

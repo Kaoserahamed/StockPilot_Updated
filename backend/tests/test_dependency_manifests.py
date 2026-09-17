@@ -113,15 +113,15 @@ def test_lockfile_has_no_duplicate_entries() -> None:
         seen.add(name)
 
 
-def test_lockfile_covers_every_direct_pin() -> None:
+def test_lockfile_covers_every_runtime_pin() -> None:
+    """The lockfile resolves the runtime closure; dev tooling stays separate."""
     locked = dict(pin_parts(line) for line in requirement_lines(LOCKFILE))
-    for path in (RUNTIME_REQUIREMENTS, DEV_REQUIREMENTS):
-        for line in requirement_lines(path):
-            name, version = pin_parts(line)
-            assert name in locked, f"{name} is pinned in {path.name} but missing from the lockfile"
-            assert locked[name] == version, (
-                f"{name}=={version} in {path.name} does not match the lockfile ({locked[name]})"
-            )
+    for line in requirement_lines(RUNTIME_REQUIREMENTS):
+        name, version = pin_parts(line)
+        assert name in locked, f"{name} is pinned in requirements.txt but missing from the lockfile"
+        assert locked[name] == version, (
+            f"{name}=={version} in requirements.txt does not match the lockfile ({locked[name]})"
+        )
 
 
 def test_dev_tooling_stays_out_of_the_runtime_manifest() -> None:
