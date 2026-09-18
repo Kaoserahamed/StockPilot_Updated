@@ -31,6 +31,7 @@ from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging_config import setup_logging
 from app.core.middleware import register_middleware
+from app.core.rate_limit import setup_rate_limiting
 from app.core.timeouts import setup_timeouts
 from app.db.base import Base
 from app.db.session import engine, ensure_indexes
@@ -91,6 +92,20 @@ register_middleware(app)
 
 # --- Request timeouts ---
 setup_timeouts(app)
+
+# --- Rate limiting (FR-38: 100 req/min default, 5 req/min auth endpoints) ---
+# Always wired: slowapi no-ops gracefully when uninstalled, and the in-memory
+# store is per-process so it cannot interfere with test isolation.
+setup_rate_limiting(app)
+
+# --- CSRF protection (double-submit cookie pattern) ---
+# Only enabled in production: the test suite and dev environment do not send
+# CSRF tokens (single-page dev server / TestClient), so the middleware is
+# registered only against the production/stage environments.
+if settings.environment in {"production", "staging"}:
+    from app.core.csrf import CSRFMiddleware
+
+    app.add_middleware(CSRFMiddleware)
 
 # --- CORS (registered LAST so it is outermost and wraps every response,
 # --- including timeout 504s, with Access-Control headers) ---

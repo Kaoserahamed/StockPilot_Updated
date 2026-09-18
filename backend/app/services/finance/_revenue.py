@@ -1,5 +1,7 @@
 """Revenue-related finance queries: summaries, trends, sales-in-range."""
 
+from datetime import datetime
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -62,7 +64,7 @@ def revenue_summary(db: Session, business_id: int, start: object, end: object) -
     return _memo_set(db, "revenue_summary", business_id, start, end, result)
 
 
-def _bucket_key(dt, bucket: str) -> str:
+def _bucket_key(dt: datetime, bucket: str) -> str:
     """Portable period key: identical output on SQLite and Postgres."""
     if bucket == "month":
         return dt.strftime("%Y-%m")

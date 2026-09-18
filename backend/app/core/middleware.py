@@ -9,10 +9,9 @@ Provides:
 
 import time
 import uuid
-from collections.abc import Callable
 
 from fastapi import FastAPI, Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from app.core.config import settings
 from app.core.error_tracking import get_error_tracker
@@ -24,7 +23,7 @@ logger = get_logger(__name__)
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to every response."""
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
@@ -62,7 +61,7 @@ class CacheHeadersMiddleware(BaseHTTPMiddleware):
     # Endpoints that can be cached briefly
     SHORT_CACHE_PATHS = {"/api/v1/products", "/api/v1/categories", "/api/v1/parties"}
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)
         path = request.url.path
 
@@ -89,7 +88,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
     - Echoed back in the response header for client-side correlation
     """
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         req_id = request.headers.get("X-Request-Id") or uuid.uuid4().hex[:16]
         request.state.request_id = req_id
         start = time.perf_counter()
