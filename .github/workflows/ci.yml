@@ -91,7 +91,7 @@ jobs:
         run: pip install -r requirements-dev.lock
 
       - name: Run tests with coverage
-        run: pytest --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80
+        run: pytest --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=90
 
       - name: Upload coverage report
         if: always()
@@ -124,8 +124,32 @@ jobs:
       - name: Install pip-audit
         run: pip install pip-audit
 
-      - name: Audit runtime dependencies
-        run: pip-audit -r requirements.txt
+      - name: Audit runtime dependencies (full locked closure)
+        run: pip-audit -r requirements.lock
+
+  # ---------------------------------------------------------------------------
+  # Backend: lockfile drift check (fail if uv.lock is stale)
+  # ---------------------------------------------------------------------------
+  backend-lock-drift:
+    name: backend / lock drift
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Check uv.lock is up to date
+        run: uv lock --check
 
   # ---------------------------------------------------------------------------
   # Frontend: lint, types and production build
@@ -190,8 +214,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit dependencies
-        run: npm audit --audit-level=high
+      - name: Audit dependencies (committed allowlist gate)
+        run: npm run audit
 
   # ---------------------------------------------------------------------------
   # Backend: prove a fresh clone installs from the committed lockfile
@@ -224,6 +248,11 @@ jobs:
 
       - name: Add the fully pinned test tooling
         run: .venv/bin/python -m pip install -r requirements-dev.lock
+
+      - name: Verify uv.lock is in sync with pyproject.toml
+        run: |
+          # `uv` is part of requirements-dev.lock, so no extra install step.
+          .venv/bin/uv lock --check
 
       - name: Import the app and run the suite against the locked closure
         run: |
@@ -337,3 +366,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+

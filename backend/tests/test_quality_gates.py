@@ -44,7 +44,7 @@ def ci_workflow() -> str:
 def test_backend_pytest_enforces_a_coverage_floor() -> None:
     config = load_toml(BACKEND_PYPROJECT)["tool"]
     assert config["coverage"]["run"]["source"] == ["app"]
-    assert config["coverage"]["report"]["fail_under"] >= 80
+    assert config["coverage"]["report"]["fail_under"] >= 90
     assert config["pytest"]["ini_options"]["testpaths"] == ["tests"]
 
 
@@ -53,24 +53,24 @@ def test_repo_root_can_run_the_backend_suite() -> None:
     options = config["pytest"]["ini_options"]
     assert options["testpaths"] == ["backend/tests"]
     assert "backend" in options["pythonpath"]
-    assert config["coverage"]["report"]["fail_under"] >= 80
+    assert config["coverage"]["report"]["fail_under"] >= 90
 
 
 def test_ci_gates_lint_types_tests_and_dependency_audits() -> None:
     workflow = ci_workflow()
     for command in (
-        "ruff check app tests",
-        "ruff format --check app tests",
+        "ruff check app tests scripts",
+        "ruff format --check app tests scripts",
         "mypy app",
-        "--cov-fail-under=80",
+        "--cov-fail-under=90",
         "--cov=app",
         "npm run lint",
         "npm run typecheck",
         "npm run test:coverage",
         "npm run format:check",
         "npm run build",
-        "pip-audit -r requirements.txt",
-        "npm audit --audit-level=high",
+        "pip-audit -r requirements.lock",
+        "npm run audit",
         "pip install -r requirements.lock",
         "pip install -r requirements-dev.lock",
     ):
@@ -87,6 +87,7 @@ def test_ci_runs_every_suite_on_pull_requests_and_main() -> None:
         "backend-audit:",
         "frontend-check:",
         "frontend-audit:",
+        "backend-lock-drift:",
         "backend-reproducible-install:",
         "backend-secret-scan:",
     ):
