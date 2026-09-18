@@ -60,7 +60,7 @@ pycparser==3.0
 pydantic-settings==2.15.0
 pydantic==2.11.7
 pydantic_core==2.33.2
-PyJWT==2.10.1
+PyJWT==2.13.0
 PyMySQL==1.1.2
 pyparsing==3.3.2
 python-dotenv==1.2.3

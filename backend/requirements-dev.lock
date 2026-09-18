@@ -95,7 +95,7 @@ pydantic-settings==2.15.0
 pydantic==2.11.7
 pydantic_core==2.33.2
 Pygments==2.21.0
-PyJWT==2.10.1
+PyJWT==2.13.0
 PyMySQL==1.1.2
 pyparsing==3.3.2
 pyproject_hooks==1.3.3
@@ -123,8 +123,9 @@ typing-inspection==0.4.4
 typing_extensions==4.16.0
 uritemplate==4.2.0
 urllib3==2.8.0
+uv==0.12.16
 uvicorn==0.35.0
-virtualenv==21.7.12
+virtualenv==21.7.14
 watchfiles==1.2.0
 websockets==17.1
 wheel==0.48.0
