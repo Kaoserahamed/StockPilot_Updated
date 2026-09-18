@@ -19,7 +19,7 @@ FILENAME="stockpilot_${DATE}.sql.gz"
 # and leak a weak credential into shell history and process listings.
 # PGPASSWORD is ONLY sourced from the DB_PASSWORD env var, never defaulted.
 : "${DB_PASSWORD:?DB_PASSWORD is not set. Export it before running this script; no default password is provided.}"
-export PGPASSWORD="${DB_PASSWORD}"
+export PGPASSWORD="${DB_PASSWORD}"  # pragma: allowlist secret
 
 mkdir -p "$BACKUP_DIR"
 

@@ -14,7 +14,7 @@ DB_USER="${DB_USER:-stockpilot}"
 # SECURITY: No default password is provided - script will fail if DB_PASSWORD
 # is not set in the environment. PGPASSWORD is ONLY sourced from DB_PASSWORD.
 : "${DB_PASSWORD:?DB_PASSWORD is not set. Export it before running this script; no default password is provided.}"
-export PGPASSWORD="${DB_PASSWORD}"
+export PGPASSWORD="${DB_PASSWORD}"  # pragma: allowlist secret
 
 if [ -z "${1:-}" ]; then
   echo "Usage: $0 <backup_file>"
