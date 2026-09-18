@@ -35,6 +35,7 @@ doctor: ## Check required tooling (python 3.11+, node 20+, docker, env templates
 	@test -f $(FRONTEND)/.env.example && echo "frontend .env.example: ok"
 	@test -f $(BACKEND)/requirements.lock && echo "backend lockfile: ok"
 	@test -f $(BACKEND)/requirements-dev.lock && echo "backend dev lockfile: ok"
+	@test -f $(BACKEND)/uv.lock && echo "backend uv lockfile: ok"
 
 # ---------------------------------------------------------------- install ----
 .PHONY: install
@@ -56,7 +57,7 @@ lint: lint-backend lint-frontend ## Lint both stacks
 
 .PHONY: lint-backend
 lint-backend: ## Ruff lint + format check (backend)
-	cd $(BACKEND) && python -m ruff check app tests && python -m ruff format --check app tests
+	cd $(BACKEND) && python -m ruff check app tests scripts && python -m ruff format --check app tests scripts
 
 .PHONY: lint-frontend
 lint-frontend: ## ESLint (frontend)
@@ -89,19 +90,24 @@ test-frontend: ## vitest run (frontend)
 	cd $(FRONTEND) && npm test -- --run
 .PHONY: test-cov
 test-cov: ## pytest with a terminal coverage report
-	cd $(BACKEND) && python -m pytest --cov=app --cov-report=term-missing
+	cd $(BACKEND) && python -m pytest --cov=app --cov-report=term-missing --cov-fail-under=90
 
 .PHONY: audit
 audit: ## Dependency vulnerability audit for both stacks
-	cd $(BACKEND) && python -m pip_audit -r requirements.txt
-	cd $(FRONTEND) && npm audit --audit-level=high
+	cd $(BACKEND) && python -m pip_audit -r requirements.lock
+	cd $(FRONTEND) && npm run audit
+
+.PHONY: secrets
+secrets: ## Scan for hardcoded secrets
+	cd $(BACKEND) && python scripts/scan_secrets.py
 
 .PHONY: lock
-lock: ## Regenerate backend/requirements.lock + requirements-dev.lock from the manifests
+lock: ## Regenerate backend lockfiles (pip closure + uv.lock) from the manifests
 	cd $(BACKEND) && python scripts/generate_lockfile.py && python scripts/generate_lockfile.py --dev
+	cd $(BACKEND) && uv lock
 
 .PHONY: verify
-verify: lint typecheck test build ## Everything CI enforces, in one command
+verify: lint typecheck test build audit secrets ## Everything CI enforces, in one command
 
 # ------------------------------------------------------------------- build ----
 .PHONY: build

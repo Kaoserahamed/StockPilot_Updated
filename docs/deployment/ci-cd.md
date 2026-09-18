@@ -34,9 +34,9 @@ setup the suite uses locally.
 |-----|------|-----------|
 | `backend-lint` | `ruff check app tests scripts`, `ruff format --check app tests scripts`, `mypy app` | lint/format/type error |
 | `backend-test` | installs `requirements-dev.lock`, runs `pytest --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80`; uploads `coverage.xml` | any test fails or coverage is below 80% |
-| `backend-audit` | `pip-audit -r requirements.txt` | a known vulnerability in a runtime pin |
+| `backend-audit` | `pip-audit -r requirements.lock` | a known vulnerability in the locked closure |
 | `frontend-check` | `npm ci`, `npm run test:coverage`, `npm run lint`, `npm run typecheck`, `npm run format:check`, `npm run build` | any frontend gate fails |
-| `frontend-audit` | `npm audit --audit-level=high` | a high/critical advisory |
+| `frontend-audit` | `npm run audit` (the committed deferral gate) | a high/critical advisory that is not a recorded deferral |
 | `backend-reproducible-install` | creates a venv, installs **`requirements.lock`** then **`requirements-dev.lock`**, imports `app.main` and runs `pytest` | a lockfile no longer installs or resolves differently |
 | `backend-secret-scan` | `python backend/scripts/scan_secrets.py` | a committed credential literal |
 | `docker` | builds `./Dockerfile`, `./backend/Dockerfile`, `./frontend/Dockerfile` | any image fails to build |
@@ -49,7 +49,7 @@ setup the suite uses locally.
 | Backend coverage | 80% of `backend/app` (`fail_under` in `pyproject.toml` **and** `--cov-fail-under=80`) |
 | Frontend coverage | Vitest thresholds (lines/functions/branches/statements each >= 70%) over `lib/`, `hooks/`, `services/`, `components/` |
 | Backend suite | must pass on in-memory SQLite with no external services |
-| Dependency audit | `pip-audit` and `npm audit --audit-level=high` clean |
+| Dependency audit | `pip-audit -r requirements.lock` and `npm run audit` clean |
 | Secret scan | `backend/scripts/scan_secrets.py` reports nothing |
 | Reproducibility | `requirements.lock` installs a working app on its own |
 
@@ -128,7 +128,7 @@ curl -fsS http://localhost:8000/health
 
 ```bash
 make verify                        # lint + types + tests + build
-make audit                         # pip-audit + npm audit
+make audit                         # pip-audit -r requirements.lock + npm run audit
 python backend/scripts/scan_secrets.py
 docker build -t stockpilot-api:local .
 ```
