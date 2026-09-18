@@ -223,8 +223,8 @@ npm run format:check
 npm run build
 
 # supply chain & hardening
-pip-audit -r requirements.txt
-npm audit --audit-level=high
+pip-audit -r backend/requirements.lock    # full locked closure
+npm run audit                             # committed deferral gate (frontend/scripts/audit-gate.mjs)
 python backend/scripts/scan_secrets.py     # fails on committed credentials
 pip install -r backend/requirements.lock       # proves the lockfile installs
 pip install -r backend/requirements-dev.lock   # ... and the pinned test toolchain
@@ -236,7 +236,7 @@ docker build .                             # every Dockerfile is built in CI
 | Backend test coverage | 80% of `backend/app` (`fail_under` in `pyproject.toml` **and** `--cov-fail-under` in CI) |
 | Frontend coverage | Vitest thresholds (lines/functions/branches/statements each >= 70%) over `lib/`, `hooks/`, `services/`, `components/` |
 | Backend suite | must pass on in-memory SQLite, no external services |
-| Dependency audit | `pip-audit` and `npm audit --audit-level=high` must be clean |
+| Dependency audit | `pip-audit -r backend/requirements.lock` and `npm run audit` must be clean (the frontend gate tolerates only the recorded, reviewed deferrals) |
 | Secret scan | `backend/scripts/scan_secrets.py` must report nothing |
 
 Pre-commit hooks mirror the lint and format rules:

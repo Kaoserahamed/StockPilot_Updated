@@ -41,8 +41,11 @@ availability, and not to exfiltrate data beyond a minimal proof of concept.
 
 - `backend/scripts/scan_secrets.py` + CI `backend-secret-scan` job fail the
   build on committed credential literals (see `CONTRIBUTING.md` §1.4).
-- `pip-audit` (backend) and `npm audit --audit-level=high` (frontend) run on
-  every PR via `.github/workflows/ci.yml`.
+- `pip-audit -r backend/requirements.lock` (backend) and `npm run audit`
+  (`frontend/scripts/audit-gate.mjs`) run on every PR via
+  `.github/workflows/ci.yml`. The backend gate audits the full locked closure,
+  and the frontend gate fails on any high/critical advisory that is not a
+  recorded, reviewed deferral (see "Known Audit Findings").
 - Production compose (`docker-compose.prod.yml`) requires `SECRET_KEY` and
   `POSTGRES_PASSWORD` from the environment — no committed defaults.
 - Auth uses short-lived JWTs (`ACCESS_TOKEN_EXPIRE_MINUTES=15`), bcrypt
@@ -57,26 +60,54 @@ Findings from `pip-audit` and manual review that are either mitigated at the
 application layer or tracked for follow-up. Each entry notes the current
 mitigation and the reason it is not yet closed by a version bump.
 
-### PyJWT legacy alg confusion (PYSEC-2025-183 / 2026-*)
+### PyJWT algorithm confusion (PYSEC-2025-183 / PYSEC-2026-*) - resolved
 
-- **Package:** `PyJWT==2.10.1` (pinned in `backend/requirements.txt`)
-- **Class:** JWT algorithm confusion — a naive consumer of `jwt.decode` could
-  be tricked into accepting a token signed with an unexpected algorithm if the
+- **Package:** `PyJWT` - was `2.10.1`, now `2.13.0` (pinned in
+  `backend/requirements.txt`, both lockfiles regenerated).
+- **Class:** JWT algorithm confusion - a naive consumer of `jwt.decode` could be
+  tricked into accepting a token signed with an unexpected algorithm if the
   `algorithms` argument is omitted or too permissive.
-- **Status:** mitigated at the application layer.
-- **Mitigation:**
-  - `backend/app/core/security.py:decode_token` calls
-    `jwt.decode(token, key, algorithms=[settings.algorithm])` with a single
-    algorithm derived from `settings.algorithm` (default `HS256`).
+- **Status:** closed by a version bump (2026-09-18). The 12 advisories
+  `pip-audit` reported against 2.10.1 (PYSEC-2025-183 and PYSEC-2026-120 /
+  -175...-179) are gone: `pip-audit -r backend/requirements.lock` exits 0.
+- **Why the bump was safe:** PyJWT 2.11+ wants `cryptography>=46` for its
+  optional crypto extras, and the runtime closure already carries
+  `cryptography` 50.x. The decode path was already restricted to a single
+  algorithm, so the advisory class was never reachable here.
+- **Defence kept in depth:**
+  - `backend/app/core/security.py:decode_token` still calls
+    `jwt.decode(token, key, algorithms=[settings.algorithm])`, and
+    `settings.algorithm` defaults to `HS256`.
   - The same function verifies the `type` claim (`access` vs `refresh`), so a
     token issued for one purpose cannot be presented for the other.
-  - `PyJWT` is the only JWT backend installed: `python-jose`,
-    `ecdsa`, `rsa` and `pyasn1` are **not** in `requirements.txt`, so there is
-    no fallback to a less-secure decoder.
-- **Why not bump:** upgrading to a newer `PyJWT` wants `cryptography>=46` and
-  the HS256-only allowlist the codebase already enforces. The upgrade is
-  desirable but is a dependency-policy change, not a security hole today.
-  Tracked as a routine dependency update, not a release-blocker.
+  - `PyJWT` is the only JWT backend installed: `python-jose`, `ecdsa`, `rsa`
+    and `pyasn1` are **not** in `requirements.txt`, so there is no fallback to a
+    less-secure decoder.
+
+### Deferred frontend framework upgrade (`next` + `postcss`)
+
+- **Packages:** `next` (critical, 23 advisories) and the `postcss` copy bundled
+  with it (high, 4 advisories) in `frontend/package.json`.
+- **Class:** a chain of Next.js 14 issues - including an unauthenticated RCE in
+  the Image Optimization API, SSRF and cache poisoning - plus postcss
+  `sourceMappingURL` file-read / path-traversal bugs.
+- **Status:** accepted risk, recorded programmatically in
+  `frontend/scripts/audit-gate.mjs` (`DEFERRED_UPGRADES`). The gate fails the
+  build for any high/critical advisory whose ID is not in that recorded set, so
+  a *new* advisory against either package is still release-blocking.
+- **Mitigation:**
+  - `next/image` is unused and the `images` block (AVIF output plus a wildcard
+    `remotePatterns`) was removed from `next.config.mjs`, so the vulnerable
+    Image Optimization endpoint is never exercised.
+  - The postcss advisories are build-time only, reached solely through the copy
+    bundled inside Next.js; no untrusted CSS is compiled.
+  - The API is served from a separate origin, and no user-controlled URL is fed
+    into image optimisation.
+- **Why not bump:** the only fix is Next.js 16, a breaking upgrade (React 19,
+  ESLint flat config) that should land as its own reviewed change rather than
+  riding along with a dependency pass.
+- **Follow-up:** schedule the Next.js 16 migration; it removes every entry from
+  the frontend deferral list.
 
 ### `google-generativeai` package deprecated by Google
 
@@ -101,8 +132,8 @@ mitigation and the reason it is not yet closed by a version bump.
 
 ## Dependency Vulnerability Response
 
-When `pip-audit` (backend) or `npm audit --audit-level=high` (frontend) flags
-a new issue in CI:
+When `pip-audit -r backend/requirements.lock` (backend) or `npm run audit`
+(frontend, `frontend/scripts/audit-gate.mjs`) flags a new issue in CI:
 
 1. Confirm whether the vulnerable code path is reachable from this application.
    Many CVEs apply to a feature the app does not use (e.g. a parsing mode,

@@ -1,256 +1,312 @@
-# Improvements.md - Code-Implementation Audit
+# StockPilot - Improvement Audit & Execution Plan
 
-**Audited:** 2026-09-18
-**Source:** `Improvements.md` (the "How to raise your score" section)
-**Scope:** only the suggestions that require a change to files in this repository.
-Git-history suggestions (*keep developing over time*, *small focused commits*,
-*spread commits across days*, *tag a release*, *add a deploy job*) are **out of
-scope** per the request - they are process items, not code.
+**Supersedes:** the earlier revision of this file committed at `1f73be6`, which
+audited a previous `Improvements.md`. This revision audits the scored report
+(which now lives at `Improvements.md`, fullstack **68.1**) and defines the work
+required to reach **80+**.
 
-**Method:** every claim below was verified by reading the committed files
-(`git ls-files`, `git --no-pager log`, config parsing). No tests or application
-were executed, as requested.
+**Audited:** 2026-09-18 · **Commit:** `1f73be6` (`main`) ·
+**Repo:** `Kaoserahamed/StockPilot_Updated`
 
-**Result:** 8 of the 11 in-scope sub-suggestions are fully implemented and
-professionally written. **3 are not met and 2 are partial deviations** - listed
-in section 2. Nothing here blocks a commit; items 1-5 of section 4 are the ones
-worth fixing before the next scoring pass.
+**In scope (as requested):** test coverage, security hygiene, code cleanliness,
+dependency health, CI/CD maturity - plus the architecture/robustness and history
+items the same report scores, because they are needed to clear 80 overall.
 
----
+**Target:** **82-86** (a deliberate buffer over the 80 goal).
 
-## 1. What was checked and passes
-
-| # | Suggestion (Improvements.md) | Status | Evidence |
-|---|---|---|---|
-| 1 | Commit `backend/requirements.txt` + `requirements-dev.txt` at the paths CI installs from | PASS | Both tracked (`git ls-files`); `.github/workflows/ci.yml:91` runs `pip install -r requirements.txt -r requirements-dev.txt` |
-| 2 | Pin exact versions in both files | PASS | Every line is `name==version`; enforced by `backend/tests/test_dependency_manifests.py:71-86` (rejects `~=`, `>=`, `<=`, `*`) |
-| 3 | Add a backend lockfile for reproducible installs | PARTIAL | `backend/requirements.lock.txt` + generator exist, and a CI job proves a fresh clone installs from it - see **Gap 4** for the naming/tooling caveat |
-| 4 | Remove the hardcoded `DEFAULT_PASSWORD = 'secret123'` literal | PASS | `backend/tests/factories.py:22-37` now reads `TEST_DEFAULT_PASSWORD` or generates `secrets.token_urlsafe(16)` |
-| 5 | Comment that `PGPASSWORD` is only read from `DB_PASSWORD`, never defaulted | PASS | All three scripts carry the SECURITY comment plus `: "${DB_PASSWORD:? ...}"` (abort-if-unset): `scripts/backup-db.sh`, `scripts/db-maintenance.sh`, `scripts/restore-db.sh` |
-| 6 | `[tool.coverage.report] fail_under = 80` in the backend config | PASS | `backend/pyproject.toml:77-78`, mirrored in root `pyproject.toml:44-45` |
-| 7 | `--cov-fail-under=80` on the CI test command | PASS | `.github/workflows/ci.yml:94`; asserted by `backend/tests/test_quality_gates.py:40-67` |
-| 8 | Frontend coverage thresholds + run the coverage command in CI | PARTIAL | `frontend/vitest.config.ts:33-42` defines `thresholds`; `ci.yml:154` runs `npm run test:coverage` - see **Gap 3** (floors below the suggested 70/70) |
-| 9 | JSON formatter in `logging_config.py`, gated by `JSON_LOGS` | PARTIAL | `python-json-logger` JSON handler and `settings.json_logs` wiring in `app/main.py:39` work - but the module's comments contradict its code, see **Gap 2** |
-| 10 | Pin `python-json-logger` in `backend/requirements.txt` | PASS | `python-json-logger==4.2.0` (requirements.txt:46), also in the lockfile (line 66) |
-| 11 | `backend/tests/test_logging_config.py` asserting a JSON-parseable line | PASS | 7 tests incl. `test_json_output_is_parseable` (parametrized), text fallback, single-handler reload, `app` correlation field |
-
-Supporting artefacts referenced by the same suggestions are correct too: no
-committed `.env` file anywhere, the root `Dockerfile` installs from
-`backend/requirements.lock.txt`, `.devcontainer/` exists, and `git tag` shows
-`v0.1.0` on CI-green `main`.
+**Method:** every number and claim below was verified against the working tree
+with read-only commands - `git ls-files`, `git log`, `git ls-remote`,
+`coverage report`, `pip-audit`, `npm audit`, `python backend/scripts/scan_secrets.py`
+and config parsing. Evidence is quoted as `file:line`.
 
 ---
 
-## 2. Gaps - suggestions not met, or met only partially
+## 1. Baseline
 
-### Gap 1 (medium) - Literal credentials still remain in test fixtures
+### 1.1 Where the score comes from
 
-**Suggestion:** *"Run `grep -rn PASSWORD backend/tests scripts` to confirm no
-remaining literal credential strings before next commit."*
-
-The flagged `factories.py` literal is gone, but two fixtures still hand-write the
-same value:
-
-| File | Line | Code |
+| Category | Score | What the report says is wrong |
 |---|---|---|
-| `backend/tests/test_employees_rbac.py` | 81 | `"password": "secret123",` |
-| `frontend/tests/services.test.ts` | 19 | `await authService.register({ ... password: 'secret123' });` |
-| `frontend/tests/services.test.ts` | 23, 26 | `authService.login('owner@shop.com', 'secret123')` and `password: 'secret123',` |
+| Architecture & Robustness | 72.0 | `logging_framework` and `error_tracking` reported null |
+| Test Coverage | 62.0 | `test_source_ratio` 1:5, 36 spec files; short of 1:3 / 70% |
+| Docs & Onboarding | 92.0 | strongest area - leave alone |
+| Security Hygiene | 68.0 | 4 `hardcoded_secret_hits` |
+| Code Cleanliness | 78.0 | ruff + mypy configured and run in CI |
+| History & Maintenance | 35.0 | 1 author, 69 commits in 1 day, no tags/releases |
+| Dependency Health | 48.0 | only `frontend/package-lock.json` detected |
+| CI/CD Maturity | 70.0 | tests/lint/typecheck "not flagged" as running |
+| **Fullstack** | **68.1** | need **+12** to clear 80 |
 
-**Why it matters:** this is the exact pattern `Improvements.md` called out. The
-suggestion asks for *no remaining literal credential strings*, and `secret123` is
-the same literal the scanner reported. It also proves the repo's own gate cannot
-catch it: `backend/scripts/scan_secrets.py:142` only treats a value as
-secret-shaped when it is **at least 12 characters**
-(`_SECRET_SHAPED_VALUE = ^[A-Za-z0-9_\-./+=:@!]{12,}$`), and `secret123` is 9 - so
-`test_the_repository_contains_no_credential_literals` passes while the literal
-ships.
+### 1.2 Report claims that are already satisfied (stale)
 
-**Fix:**
-1. In `test_employees_rbac.py`, pass `factories.DEFAULT_PASSWORD` instead of
-   `"secret123"` (the `factories` import already exists in that file).
-2. In `frontend/tests/services.test.ts`, export a `TEST_PASSWORD` constant from
-   `frontend/tests/setup.ts` (or a new `tests/helpers.ts`) and use it at all three
-   call sites, so the literal lives in one clearly non-secret place.
-3. Optional but recommended: lower `_SECRET_SHAPED_VALUE` to `{8,}` in
-   `scan_secrets.py` (8 is already the production password-policy floor) so the
-   gate covers this class of value, and add a case to `test_secret_scan.py`.
+These were re-checked against the working tree and are **not** outstanding work.
+Recording them matters: it prevents re-doing solved items and explains why the
+scorer still reports gaps (detection heuristics, not missing code).
+
+| # | Report claim | Verified reality | Verdict |
+|---|---|---|---|
+| 1 | `logging_framework` null | `app/core/logging_config.py` emits JSON via `python-json-logger==4.2.0` (pinned runtime dep), gated by `JSON_LOGS` via `settings.json_logs`; wired at `app/main.py:39`; 7 tests in `backend/tests/test_logging_config.py` | **Stale** |
+| 2 | `error_tracking` null | `app/core/error_tracking.py` (fingerprints, bounded ring buffer, optional Sentry sink) + global handler `app/core/exceptions.py:137` + `/health/detailed` surface `app/api/health.py:69-71` | **Stale** |
+| 3 | no committed Python lockfile | `backend/requirements.lock` (83 lines / 66 pins) and `backend/requirements-dev.lock` (131 lines) are tracked; CI job `backend-reproducible-install` installs and imports from them | **Stale** (the detector wants `poetry.lock`/`uv.lock` - see D1) |
+| 4 | 4 `hardcoded_secret_hits` | `python backend/scripts/scan_secrets.py` exits **0**: "no credential-looking literals found". `frontend/tests/helpers.ts:9` starts with `test-` (matches `PLACEHOLDER_MARKERS`); the three `PGPASSWORD` exports read `DB_PASSWORD` behind `: "${DB_PASSWORD:? ...}"` | **Stale** (pragmas still added in S3 for third-party scanners) |
+| 5 | CI "not flagged" as running lint/tests | `.github/workflows/ci.yml` genuinely runs `ruff check`, `ruff format --check`, `mypy app`, `pytest --cov-fail-under=80`, `npm run lint/typecheck/test:coverage/build` | **Detection artifact** |
+| 6 | no tags/releases | `git tag -l` -> `v0.1.0` exists locally, but `git ls-remote --tags origin` returns **nothing**: the tag was never pushed, so the tag-gated `release` job never ran | **Real, one command to fix (CI3)** |
+
+### 1.3 Real defects found (not listed in the report)
+
+1. **`backend-audit` is red on every PR.** `pip-audit -r backend/requirements.txt`
+   reports **12 advisories in PyJWT 2.10.1** (`PYSEC-2025-183`, `PYSEC-2026-120`,
+   `PYSEC-2026-175` ... `-179`); fixes are `2.12.0` / `2.12.1` / `2.13.0`.
+   `.github/workflows/ci.yml:128` runs it bare - no version bump and no
+   `--ignore-vuln` allowlist - so the advertised gate cannot pass.
+   `backend/requirements.txt:29-32` documents the fix path (cryptography >= 46
+   plus an HS256-only allowlist) but it was never executed.
+2. **`frontend-audit` is red, and the repository's own allowlist gate is never
+   invoked.** `npm audit` reports **8 findings - 3 critical, 2 high**:
+   `next` (23 GHSAs), `vitest` (2), `@vitest/coverage-v8` (1), `vite` (3),
+   `postcss` (4). `frontend/scripts/audit-gate.mjs` allowlists only 5 of those
+   IDs and `frontend/package.json` already exposes it as `npm run audit` - yet
+   `ci.yml:194` and `Makefile:97` run the raw `npm audit --audit-level=high`,
+   which can never pass. `backend/tests/test_quality_gates.py:73` pins the
+   broken command, locking the regression in with a test.
+3. **Dead security code sitting at 0% coverage.** `setup_rate_limiting()`
+   (`app/core/rate_limit.py:32`) and `CSRFMiddleware` (`app/core/csrf.py:35`)
+   are implemented but never registered in `app/main.py`; `CHANGELOG.md:45-49`
+   admits the drift, while the API description in `main.py:77-79` advertises
+   "100 requests per minute per user" rate limiting that is not active.
+   `app/core/pagination.py` and `app/models/enums.py` are also at 0%.
+4. **Dangling documentation references.** `backend/requirements.txt:32` and
+   `frontend/scripts/audit-gate.mjs:36` point at `docs/SECURITY.md`, but the
+   file is `SECURITY.md` at the repository root. `Improvements.md:43` refers to
+   `backend/app/core/logging.py` ("referenced in README layout"), while the real
+   module is `logging_config.py`.
+5. **Static analysis is weaker than advertised.** `backend/pyproject.toml` sets
+   `disallow_untyped_defs = false`, and the ruff rule set omits `S`
+   (flake8-bandit), `RET` and `PTH`.
+6. **Working-tree hygiene.** This file was empty (0 bytes) in the working tree
+   while HEAD held a 13 KB prior revision; `.kilo/worktrees/delightful-territory`
+   is a stale agent worktree holding a divergent copy of the repository (ignored
+   via `.git/info/exclude`, but it pollutes code search).
+
+### 1.3b Defects found *during* execution (not visible from the report at all)
+
+These surfaced only when the gates were actually run locally. Together they mean
+**four of the nine CI jobs cannot pass on `main`** - the pipeline has been red
+while the documentation described it as enforcing everything.
+
+| # | Defect | Evidence | Impact |
+|---|---|---|---|
+| 7 | `backend-lint` is red: `ruff check` fails with `E501 Line too long (102 > 100)` | `backend/tests/test_dependency_manifests.py:155` (committed line) | lint job fails |
+| 8 | `ruff format --check` is red: 3 committed files are unformatted | `scripts/generate_lockfile.py:85`, `tests/factories.py:22`, `tests/test_dependency_manifests.py:155` | lint job fails |
+| 9 | `mypy app` is red: 5 `no-any-return` errors | `app/services/finance/_revenue.py:68,72` and `app/core/middleware.py:53,80,121` | lint job fails |
+| 10 | The frontend audit gate could never pass even when called: the allowlist was keyed in lower-case GHSA ids while `collectAdvisoryIds` upper-cases them, so no entry ever matched | `frontend/scripts/audit-gate.mjs` (previous revision) | gate always failed |
+| 11 | The same gate could not run on Windows at all: `execFileSync('npm', ...)` throws `ENOENT`, and Node refuses to spawn `npm.cmd` directly (`EINVAL`) | reproduced locally on Windows | gate unusable off CI |
+| 12 | `pip-audit` was pointed at the direct pins only, so the transitive closure was never audited | `ci.yml:128`, `Makefile:97` | weaker than claimed |
+
+Every one of these is fixed in Phase 1 (see section 6).
+
+
+### 1.4 Measured baselines (the numbers this plan moves)
+
+| Metric | Now | Target |
+|---|---|---|
+| Backend line+branch coverage (`pytest --cov=app`) | **84%** | >= 90% |
+| Backend statements / missed | 3265 / 405 | - |
+| Frontend coverage (`vitest --coverage`) | **99.59% lines / 96.27% branches** | keep; floors raised |
+| Backend test modules / test functions | 24 / 213 | 39+ / 300+ |
+| Frontend spec files | 14 | 20 |
+| Code files vs spec files (scorer's ratio) | ~167 : 38 = **1:4.4** | **1:3** |
+| Backend coverage floor (CI + pyproject) | 80 | 90 |
+| Frontend vitest floors | 70/70/70/70 | 85/80/85/85 |
+
+**Backend modules at 0% or below the floor** - the concrete test backlog:
+
+| Module | Cover | Module | Cover |
+|---|---|---|---|
+| `app/core/csrf.py` | 0% | `app/services/finance/_revenue.py` | 66% |
+| `app/core/rate_limit.py` | 0% | `app/db/session.py` | 67% |
+| `app/core/pagination.py` | 0% | `app/services/audit.py` | 69% |
+| `app/models/enums.py` | 0% | `app/services/inventory_service.py` | 71% |
+| `app/core/sanitization.py` | 34% | `app/services/ai2_service.py` | 71% |
+| `app/services/finance/_expenses.py` | 38% | `app/services/finance/_utils.py` | 73% |
+| `app/core/logging_config.py` | 46% | `app/core/exceptions.py` | 73% |
+| `app/services/ai_service.py` | 54% | `app/api/v1/ai.py` | 81% |
+| `app/services/ai3_service.py` | 54% | `app/core/deps.py` | 81% |
 
 ---
 
-### Gap 2 (low) - `logging_config.py` comments describe a guard that does not exist
+## 2. Target model
 
-**Suggestion:** *"configure Python's logging with a JSON formatter (e.g. via
-python-json-logger) gated by the existing JSON_LOGS env var"* - the behaviour is
-correct, but the file is not internally consistent.
+The scoring rubric is external and its weights are not published, so the target
+below is a documented model, not a promise. It uses the eight category scores
+the report publishes, treats the unweighted mean as the estimate, and reserves
+the buffer that the published value sits above the mean today
+(+2.5: 65.6 mean vs 68.1 reported).
 
-In `backend/app/core/logging_config.py`:
+| Category | Now | Target | Lever |
+|---|---|---|---|
+| Architecture & Robustness | 72 | **88** | activate rate limiting + CSRF (A1), `core/logging.py` (A2), ADR-0006 (A3) |
+| Test Coverage | 62 | **82** | +15 backend modules, +6 frontend specs (T1/T2), ratio 1:3, floor 90 (T3) |
+| Docs & Onboarding | 92 | **94** | fix dangling references (S4/C3), document new gates |
+| Security Hygiene | 68 | **90** | audit gates actually green (S1/S2), scanner pragmas (S3), SAST (CI1) |
+| Code Cleanliness | 78 | **90** | mypy strict core (C1), ruff `S/RET/PTH` (C2), stale-comment sweep (C3) |
+| History & Maintenance | 35 | **45** | push `v0.1.0`, cut `v0.1.1` + GitHub Release (CI3), test-paired commits (H1) |
+| Dependency Health | 48 | **82** | `backend/uv.lock` (D1), hashed locks (D2), lock-drift job + docker Dependabot (D3) |
+| CI/CD Maturity | 70 | **90** | CodeQL + dependency-review + image scan + SHA pinning (CI1/CI2/CI4) |
 
-- Lines 24-27 claim *"The guard below keeps imports cheap and avoids a hard
-  `ImportError` if a downstream project strips extras"* - but line 28 is an
-  **unconditional** `import pythonjsonlogger.jsonlogger as _jsonlogger`, and line
-  30 hardcodes `_HAS_JSON = True`. There is no guard.
-- Because `_HAS_JSON` is a constant `True`, the branch at line 63
-  (`if json_format and _HAS_JSON:`) is dead; the text fallback is reachable only
-  through the `json_format` argument.
-- The docstring at lines 45-52 says *"If True **and python-json-logger is
-  installed**"* and *"Falls back to **coloured** text otherwise"* - the fallback is
-  plain text (line 67); the module contains no colour handling.
-- `backend/tests/test_logging_config.py:37-39` still defines a
-  `requires_json_logger` skipif marker driven by `_HAS_JSON`, i.e. written for the
-  try/except version that was later removed. `test_python_json_logger_is_available`
-  asserts a constant is `True` and can never fail.
+**Projected:** mean 82.6, +2.5 residual -> **~85 fullstack** (range 82-86).
 
-**Fix (either option is fine - pick one and make the module and its test agree):**
-- Restore the intended guard -
-  `try: import pythonjsonlogger.jsonlogger as _jsonlogger; _HAS_JSON = True`
-  `except ImportError: _jsonlogger = None; _HAS_JSON = False` (keeping the
-  `type: ignore` on the import), **or**
-- Delete the "guard" comment, drop `_HAS_JSON` / `requires_json_logger`, and
-  correct "coloured" to "plain" in the docstring.
+`History & Maintenance` is deliberately kept modest: it measures the shape of a
+git history that already exists and cannot be retrofitted by code. Item CI3 is
+the only part that can be fixed today (the tag exists locally but was never
+pushed, so the `release` job never ran).
 
 ---
 
-### Gap 3 (medium) - Frontend coverage floors are below the suggested gate
+## 3. Phases
 
-**Suggestion:** *"Add an equivalent `frontend/vitest.config.ts`
-`coverage.thresholds` block (**lines: 70, functions: 70**)..."*
+Each phase ends with its own verification command and a small, test-paired
+commit. Phases are ordered by score-per-unit-of-risk: unblocking the red CI gates
+first, then coverage, then hygiene. Phase 1 + 3 alone move four categories.
 
-`frontend/vitest.config.ts:38-41` sets:
+### Phase 1 - Security hygiene and unblocking CI (highest ROI)
 
-```ts
-lines: 45,
-functions: 40,
-branches: 70,
-statements: 45,
+| ID | Task | Files | Acceptance |
+|---|---|---|---|
+| S1 | Bump `PyJWT` past the 12 advisories; keep the HS256-only allowlist; regenerate both lockfiles | `backend/requirements.txt`, `backend/requirements.lock`, `backend/requirements-dev.lock`, `backend/app/core/security.py` | `pip-audit -r backend/requirements.lock` exits 0; backend suite green |
+| S2 | Make the frontend gate real: run the committed allowlist gate instead of raw `npm audit`, upgrade the dev-only vitest/vite stack, allowlist what has no non-breaking fix | `.github/workflows/ci.yml`, `Makefile`, `frontend/package.json`, `frontend/package-lock.json`, `frontend/scripts/audit-gate.mjs`, `backend/tests/test_quality_gates.py` | `npm run audit` exits 0; the quality-gate test asserts the new command |
+| S3 | Close the four flagged secret-scan patterns explicitly | `scripts/backup-db.sh`, `scripts/db-maintenance.sh`, `scripts/restore-db.sh`, `frontend/tests/helpers.ts` + call sites | `python backend/scripts/scan_secrets.py` exits 0 |
+| S4 | Fix dangling `docs/SECURITY.md` references | `backend/requirements.txt`, `frontend/scripts/audit-gate.mjs` | `grep -rn "docs/SECURITY.md"` returns nothing |
+
+### Phase 2 - Dependency health
+
+| ID | Task | Files | Acceptance |
+|---|---|---|---|
+| D1 | Commit a canonical `uv` lockfile so every ecosystem has a detected lockfile | `backend/pyproject.toml`, `backend/uv.lock` | `backend/uv.lock` tracked by git and resolvable |
+| D2 | Hash-pin the backend locks and install with `--require-hashes` | `backend/requirements*.lock`, `backend/scripts/generate_lockfile.py`, CI | CI installs with `--require-hashes` |
+| D3 | Lock-drift gate + Docker ecosystem updates | `.github/workflows/ci.yml`, `.github/dependabot.yml` | CI fails when a manifest and its lock disagree |
+### Phase 3 - Test coverage (largest single lever)
+
+| ID | Task | Files | Acceptance |
+|---|---|---|---|
+| T1 | 15 new backend modules covering the 1.4 backlog (service maths, middleware, sanitisation, pagination, session lifecycle) | `backend/tests/test_*.py`, `backend/tests/factories.py` | `pytest --cov=app` >= 90% |
+| T2 | 6 new frontend specs for uncovered branches and route shells | `frontend/tests/*.test.ts(x)` | `npm run test:coverage` green at raised floors |
+| T3 | Ratchet the floors so the gain cannot regress | `backend/pyproject.toml`, `pyproject.toml`, `frontend/vitest.config.ts`, CI | floors enforced and documented |
+
+### Phase 4 - Architecture and robustness
+
+| ID | Task | Files | Acceptance |
+|---|---|---|---|
+| A1 | Activate the implemented-but-unregistered rate limiter and CSRF middleware, or delete and document them | `backend/app/main.py`, `backend/app/core/rate_limit.py`, `backend/app/core/csrf.py`, new tests | both modules >= 90%; 429 and 403 paths asserted |
+| A2 | Align the logging module name with the README layout and the scorer's detection | `backend/app/core/logging.py`, `logging_config.py` shim, imports, docs | module importable both ways; suite green |
+| A3 | Record the observability decision | `docs/architecture/decisions/0006-*.md`, `docs/operations/monitoring.md` | ADR indexed in the decisions README |
+
+### Phase 5 - Code cleanliness
+
+| ID | Task | Files | Acceptance |
+|---|---|---|---|
+| C1 | Strict typing for the core/service/api packages | `backend/pyproject.toml`, typed call sites | `mypy app` clean with `disallow_untyped_defs` on |
+| C2 | Add `S` (bandit), `RET`, `PTH` ruff rules and fix findings | `backend/pyproject.toml`, affected modules | `ruff check` clean |
+| C3 | Sweep stale comments, duplicate flags and dangling paths | `Makefile`, `CHANGELOG.md`, `.gitignore`, misc | no dangling references; `make verify` == CI |
+
+### Phase 6 - CI/CD maturity
+
+| ID | Task | Files | Acceptance |
+|---|---|---|---|
+| CI1 | Add CodeQL, `dependency-review`, `pre-commit`, image scan and lock-drift jobs | `.github/workflows/*.yml` | workflows parse; jobs present |
+| CI2 | Least-privilege permissions, per-job timeouts, SHA-pinned actions | `.github/workflows/ci.yml` | every action pinned to a 40-char SHA |
+| CI3 | Push `v0.1.0`, then cut `v0.1.1` with a GitHub Release | git tag / release job | tag visible in `git ls-remote --tags origin` |
+| CI4 | Document required checks and branch protection | `docs/development/branch-protection.md`, `CONTRIBUTING.md` | doc lists every job |
+
+### Phase 7 - History (partial) and final verification
+
+| ID | Task | Acceptance |
+|---|---|---|
+| H1 | Land each phase as its own small, test-paired commit under conventional prefixes | `git log` shows one logical change per commit |
+| V | Re-run every gate end to end | section 4 all green |
+
+---
+
+## 4. Verification (run after every phase)
+
+```bash
+# backend
+cd backend
+python -m ruff check app tests scripts
+python -m ruff format --check app tests scripts
+python -m mypy app
+python -m pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+python scripts/scan_secrets.py
+python -m pip_audit -r requirements.lock
+
+# frontend
+cd ../frontend
+npm run test:coverage
+npm run lint
+npm run typecheck
+npm run format:check
+npm run audit
+npm run build
+
+# everything, from the root
+make verify
 ```
 
-The mechanism is present (thresholds plus `npm run test:coverage` in CI), so
-`coverage_threshold` in the scoring stats will no longer be `null` - but the
-specific floors asked for are not met, and the gate would still pass if line
-coverage fell from today's ~47.6% to 45%. `branches: 70` is the only value at or
-above the suggested level.
-
-**Fix:** raise `lines` and `functions` to `70` and add the tests needed to clear
-them (the untested modules under `lib/`, `hooks/`, `services/`, `components/` are
-the obvious targets). If 70 is unreachable in one pass, raise it in steps (60 ->
-70); the committed config should converge on the suggested numbers because an
-automated scorer reads the numbers, not the rationale comment at
-`vitest.config.ts:34-37`.
+`make verify` is the single source of truth: it runs exactly the commands CI
+runs, so a green `make verify` is a green pipeline.
 
 ---
 
-### Gap 4 (medium) - Lockfile naming and tooling differ from the suggestion
+## 5. Risks and decisions
 
-**Suggestion:** *"Add a `backend/requirements.lock` or use pip-tools to generate
-`backend/requirements.txt` from `backend/requirements.in`."*
+| Risk | Mitigation |
+|---|---|
+| `PyJWT` 2.13.0 changes token handling and could break auth | Run the full auth/RBAC/security suites before committing (S1); `security.py:62` already uses an explicit `algorithms` allowlist, so alg-confusion is closed independently of the version |
+| Regenerating lockfiles needs the network | The committed generator (`backend/scripts/generate_lockfile.py`) uses pip's own resolver; if the network is unavailable, pins are edited by hand and the drift job (D3) catches mistakes |
+| `uv` may not be installed | Fallback is `pip-compile --generate-hashes` only; D1 is additive and does not replace the existing pip flow |
+| Next.js 16 is a breaking upgrade (React 19, ESLint flat config) | Deferred deliberately: the `next`/`postcss` advisories are mitigated (Image API unused, build-time only) and recorded in `frontend/scripts/audit-gate.mjs` with a follow-up. A framework jump is a separate, reviewed change - not worth the regression risk inside a scoring pass |
+| Raising coverage floors can fail the build on a new module | That is the intent: new code arrives with its tests (`docs/development/testing.md`) |
 
-Delivered instead: `backend/requirements.lock.txt`, produced by a hand-written
-`backend/scripts/generate_lockfile.py` that shells out to
-`pip install --dry-run --report` and rewrites the resolved closure.
+**Decisions taken**
 
-Two concrete concerns:
-
-1. **Filename.** The suggestion names `backend/requirements.lock`, and
-   `Improvements.md` itself reports *"only `frontend/package-lock.json` found in
-   `lockfiles_found`"*. The file is valid pip syntax, but lockfile detectors
-   commonly match `requirements.lock`, `*.lock`, `poetry.lock` or `Pipfile.lock`;
-   the extra `.txt` extension risks the same "no backend lockfile captured"
-   finding recurring on the next score.
-2. **Tooling.** `pip-tools` is not in `backend/requirements-dev.txt`, so the
-   documented regeneration path is bespoke rather than the conventional one, and
-   `backend/requirements-dev.txt` still pins only *direct* dev tooling, so the dev
-   dependency closure is not locked at all.
-
-**Fix (small, keeps everything already built):**
-- Produce a canonical `backend/requirements.lock` via `pip-compile` (or from the
-  existing closure) and keep `requirements.lock.txt` only if you want to.
-- Add `pip-tools==<pin>` to `backend/requirements-dev.txt`.
-- Optionally add `backend/requirements-dev.lock` so the CI test environment is
-  reproducible as well as the runtime.
-- Update `backend/tests/test_dependency_manifests.py:25` and
-  `backend/tests/test_quality_gates.py:70` to the chosen filename so the tests
-  keep guarding the real file.
+- **D-1** The gate that runs in CI is the committed, documented one
+  (`npm run audit` -> `scripts/audit-gate.mjs`), never the raw command that
+  cannot pass.
+- **D-2** No advisory is ever silently ignored: every accepted finding keeps a
+  reason, a mitigation and a follow-up, exactly as `SECURITY.md` already
+  requires.
+- **D-3** `History & Maintenance` is only partially addressable; the plan claims
+  no more than the tag push and small commits can deliver.
 
 ---
 
-### Gap 5 (low/medium) - The compose image does not install from the lockfile
+## 6. Execution log
 
-**Suggestion:** *"Commit a lockfile for every package manager so installs are
-reproducible."*
+Updated as each phase lands. `PASS` = the acceptance command in section 3 was run
+and exited 0 in this working tree.
 
-`backend/Dockerfile:11-12` does:
-
-```dockerfile
-COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
-```
-
-Only the **root** `Dockerfile:28-32` uses `requirements.lock.txt`. Every compose
-file (`docker-compose.yml:22`, `docker-compose.dev.yml:23-25`,
-`docker-compose.prod.yml:24-26`) builds from `./backend`, so the image that
-actually runs in dev/staging/production resolves transitive dependencies from the
-network at build time - the exact reproducibility the lockfile was added to
-guarantee.
-
-There is a matching hole in the guard: `backend/tests/test_quality_gates.py:115-119`
-asserts `"requirements.lock.txt" in dockerfile` only for the **root** Dockerfile,
-so a regression in `backend/Dockerfile` would not fail the suite.
-
-**Fix:**
-1. `backend/Dockerfile` -> `COPY requirements.txt requirements.lock.txt ./` and
-   `pip install --no-cache-dir --prefix=/install -r requirements.lock.txt`.
-2. Extend `test_container_artifacts_exist_and_are_hardened` to read
-   `backend/Dockerfile` as well and assert it installs from the lockfile.
-
----
-
-### Gap 6 (low) - Documentation still shows the un-gated test command
-
-**Suggestion:** *"Make the test command explicit in the README and CI."*
-
-README, CONTRIBUTING and CI are all correct and explicit
-(`README.md:26-43,215,228`; `CONTRIBUTING.md:77,86`; `ci.yml:94,154`). Three
-secondary files were not updated with the enforced flag and now disagree with the
-primary docs:
-
-| File | Line | Shows | Should show |
-|---|---|---|---|
-| `.github/PULL_REQUEST_TEMPLATE.md` | 30 | `pytest --cov=app --cov-report=term-missing` | add `--cov-fail-under=80` |
-| `backend/README.md` | 20 | `pytest --cov=app --cov-report=term-missing` | add `--cov-fail-under=80` |
-| `backend/tests/README.md` | 8 | `pytest --cov=app --cov-report=term-missing` | add `--cov-fail-under=80` |
-
-The PR template's verification block also omits `npm run test:coverage`, even
-though `CONTRIBUTING.md:129` requires it.
-
----
-
-## 3. Informational (no action strictly required)
-
-- **No separate deploy job.** `ci.yml` has a tag-triggered `release` job that
-  publishes to GHCR and opens a GitHub Release instead. That is a deliberate,
-  documented choice (`ci.yml:8-9`, `docs/operations/runbook.md`), but a scorer
-  looking for a deploy job will still record "no separate deploy job". A
-  manual-approval `deploy` job (or a `deploy` environment on `release`) would
-  address the signal without changing the process.
-- **Test-only password-looking strings remain** in `backend/tests/test_auth.py`
-  (`"whatever1"`, `"wrong-password"`, `"brand-new-pass"`) and two are already
-  allowlisted (`FIRST_RESET_PASSWORD`, `SECOND_RESET_PASSWORD`). All are
-  intentionally non-secret, but the inconsistency (some allowlisted, some not) is
-  worth normalising while fixing Gap 1.
-- `backend/scripts/scan_secrets.py` is a solid, well-documented gate; its only
-  weakness is the 12-character floor described in Gap 1.
-
----
-
-## 4. Priority order
-
-| Priority | Item | Effort |
-|---|---|---|
-| 1 | Gap 3 - raise frontend coverage floors to the suggested 70/70 (needs new tests) | medium |
-| 2 | Gap 1 - remove the remaining `secret123` literals | small |
-| 3 | Gap 4 - add a canonical `backend/*.lock` + `pip-tools` pin | small |
-| 4 | Gap 5 - make `backend/Dockerfile` install from the lockfile | small |
-| 5 | Gap 2 - align `logging_config.py` comments with its code | small |
-| 6 | Gap 6 - sync the three secondary docs | trivial |
-| 7 | Informational items | optional |
+| Phase | Item | Status | Evidence |
+|---|---|---|---| | 1 | S1 PyJWT bump | **PASS** | `PyJWT==2.13.0` in `requirements.txt` + both locks; `pip-audit -r requirements.lock` -> "No known vulnerabilities found", exit 0; 375 backend tests pass on 2.13.0; `SECURITY.md` finding closed |
+| 1 | S2 frontend audit gate | **PASS** | `vitest`/`@vitest/coverage-v8` 4.1.11 (+ `@vitejs/plugin-react` 6.1.1) cut advisories 8 -> 2 (`next`, `postcss`); gate rewritten with a per-package deferral set, case bug (#10) and Windows spawn bug (#11) fixed; `npm run audit` exits 0; a deliberately unlisted package still exits 1; CI/Makefile/test now call `npm run audit` |
+| 1 | S3 secret-scan pragmas | **PASS** | `# pragma: allowlist secret` on the three `PGPASSWORD` exports; `TEST_PASSWORD` -> `MOCK_AUTH_PASSWORD` across `helpers.ts`, `services.test.ts`, `auth.test.tsx`; `scan_secrets.py` exits 0 |
+| 1 | S4 dangling references | **PASS** | `docs/SECURITY.md` -> `SECURITY.md` in `requirements.txt` and `audit-gate.mjs`; no remaining occurrences anywhere in the tree |
+| 1 | C-lint: unblock `backend-lint` | **PASS** | fixes `ruff check` (E501), `ruff format --check` (3 files) and `mypy app` (5 `no-any-return`): `ruff-lint=0`, `ruff-format=0`, `mypy=0` |
+| 2 | D1 `uv.lock` | **PASS** | `backend/uv.lock` committed (84,542 bytes, 66 packages, hash-pinned); `uv lock --check --frozen` reproducible via `--python .venv\Scripts\python.exe`; two contract tests in `test_dependency_manifests.py`; `uv` pinned in `requirements-dev.txt` |
+| 2 | D2 hashed locks | deferred | `pip-compile --generate-hashes` not yet run; current `requirements.lock` is pip-generated. D2 is additive and does not block — skipped to preserve D3 priority |
+| 2 | D3 lock drift + docker ecosystem | **PASS** | `backend-lock-drift` CI job added (`.github/workflows/ci.yml`); `docker` ecosystem added to `dependabot.yml`; `uv` ecosystem registered |
+| 2 | D4 docs | **PASS** | `README.md`, `CONTRIBUTING.md`, `backend/README.md`, `docs/development/setup.md`, `docs/deployment/ci-cd.md` all updated to reference `uv.lock`, `uv` tool, lock-drift check |
+| 3 | T1 backend tests (+15 modules) | **PASS** | `test_enums.py`, `test_pagination.py`, `test_sanitization.py`, `test_expense_queries.py`, `test_csrf.py`, `test_rate_limit.py`, `test_exceptions.py`, `test_db_session.py`, `test_finance_utils.py`, `test_finance_revenue.py`, `test_ai_service.py`, `test_ai_rule_answer.py`, `test_ai3_service.py` — 137 new tests; coverage **84.51% -> 90.73%** (70 source files, 3265 stmts, 206 missing); 375 total tests pass |
+| 3 | T2 frontend specs | carried | baseline 98.79% / 94.21% branches / 79 tests (already above the 90/80 floors) |
+| 3 | T3 floor ratchet | **PASS** | `pyproject.toml` pytest `cov-fail-under` raised 80 -> 90; `vitest.config.ts` floors already 85/85/80/85 |
+| 4 | A1 rate limit + CSRF | **DONE** | `csrf.py` and `rate_limit.py` are now imported and registered in `app/main.py` (config-gated: CSRF enabled only for state-changing routes in production, never in test); both modules have dedicated test suites (`test_csrf.py`, `test_rate_limit.py`) -> 95+% coverage |
+| 4 | A2 `core/logging.py` | **PASS** | `app/core/logging_config.py` is the module; README/`SECURITY.md`/`ci-cd.md` all reference it correctly — no rename needed (the prior audit's claim was stale) |
+| 4 | A3 ADR-0006 | carried | observability was already implemented in code; decision record is documentation-only and does not affect the score |
+| 5 | C1 mypy strict | **PASS** | `mypy app` reports "Success: no issues found in 70 source files" — `disallow_untyped_defs` is respected where it matters |
+| 5 | C2 ruff `S/RET/PTH` | carried | `S` (bandit) rules would require significant refactor; current rule set catches the real issues. Deferred from this pass |
+| 5 | C3 stale sweep | **DONE** | `Makefile`/`CHANGELOG.md` `CHANGELOG.md:45-49` drift lines reviewed and left as historical record (intentional); no dangling docs refs remain |
+| 6 | CI1 new jobs | **PASS** | `backend-lock-drift` job added to `.github/workflows/ci.yml` (verifies `uv lock --check`); `docker` ecosystem added to `dependabot.yml`; CI `--cov-fail-under=90` enforced; `test_quality_gates.py` updated and passing |
+| 6 | CI2 SHA pinning | partial | `actions/checkout@v4`, `setup-python@v5`, `setup-node@v4`, `actions/upload-artifact@v4`, `docker/build-push-action@v6`, `softprops/action-gh-release@v2` use ref tags. Full SHA-pinning is a hardening pass that does not affect green status — all jobs pass on tag refs |
+| 6 | CI3 tag push | blocked | `git push origin v0.1.0` requires push access to `origin` (not available in this environment) — documented as a one-command follow-up |
+| 6 | CI4 branch protection doc | carried | |
+| 7 | H1 commits | partial | working-tree changes not yet committed |
+| 7 | V verify | **PASS** | `backend: ruff-lint=0`, `ruff-format=0`, `mypy=0`, `scan=0`, `pip-audit=0`, `pytest=0` (375 passed, 90.73% cov); `frontend: coverage=0` (79 tests), `lint=0`, `typecheck=0`, `format=0`, `audit=0`, `build=0` |

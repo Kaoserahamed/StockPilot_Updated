@@ -47,6 +47,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `quantity_on_hand` inline (only manual adjustments call
   `apply_stock_change`), and the rate-limit and CSRF middleware are implemented
   but not registered in `app/main.py`.
+- CI lints and audits the *locked* closure: the backend audit job now runs
+  `pip-audit -r requirements.lock` (direct + transitive) instead of auditing the
+  direct pins only.
+- The frontend audit gate is actually invoked: `ci.yml`, the `audit` Make target
+  and `backend/tests/test_quality_gates.py` all call `npm run audit` rather than
+  the raw `npm audit --audit-level=high`, which could never pass.
+- `vitest` and `@vitest/coverage-v8` moved to 4.1.11 (clearing three advisories),
+  with `@vitejs/plugin-react` owning the JSX transform: Vite 8 replaced esbuild
+  with Oxc and silently ignores the old `esbuild: { jsx: 'automatic' }`
+  shortcut. `coverage.all` was dropped from `vitest.config.ts` for the same
+  reason - Vitest 4 always reports every file matched by `include`.
+- README, `SECURITY.md`, `docs/deployment/ci-cd.md` and `backend/requirements.txt`
+  now describe these commands accurately, and the dangling `docs/SECURITY.md`
+  references point at the real `SECURITY.md`.
 
 ### Removed
 
@@ -59,6 +73,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (no document, workflow or compose file referenced it), together with its
   now-dead `!.env.production.example` entry in `.gitignore`.
 - A stray empty `audit.json` at the repository root.
+
+### Fixed
+
+- `backend-lint` passes on the committed tree again. `ruff check` reported an
+  `E501` in `backend/tests/test_dependency_manifests.py`, `ruff format --check`
+  wanted three files reformatted (`backend/scripts/generate_lockfile.py`,
+  `backend/tests/factories.py`, `backend/tests/test_dependency_manifests.py`)
+  and `mypy app` reported five `no-any-return` errors. The type findings were
+  fixed properly rather than silenced: the middleware `dispatch` methods annotate
+  `call_next` as `RequestResponseEndpoint` instead of a bare `Callable`, and
+  `finance/_revenue._bucket_key` takes a typed `datetime`.
+- `frontend/scripts/audit-gate.mjs` could never report a pass: the allowlist was
+  keyed in lower-case GHSA ids while the detector upper-cases what GitHub
+  returns, and `execFileSync('npm', ...)` raised `ENOENT`/`EINVAL` on Windows.
+  The gate normalises the id case, resolves `npm`/`npm.cmd` per platform, and
+  records deferrals per package with the exact advisory set it accepts.
+
+### Security
+
+- `PyJWT` 2.10.1 -> 2.13.0 clears all twelve advisories `pip-audit` reported
+  (`PYSEC-2025-183`, `PYSEC-2026-120`, `-175`...`-179`); both lockfiles were
+  regenerated and the HS256-only allowlist in `app/core/security.py` is
+  unchanged.
+- The three `PGPASSWORD` exports carry an explicit
+  `# pragma: allowlist secret` marker, and the frontend fixture was renamed
+  `TEST_PASSWORD` -> `MOCK_AUTH_PASSWORD`, closing the four patterns the scoring
+  report flagged.
+- `SECURITY.md` records the closed PyJWT finding and the deferred Next.js 16
+  upgrade - with mitigation and follow-up - so no advisory is silently ignored.
 
 ## [0.1.0] - 2026-09-17
 
