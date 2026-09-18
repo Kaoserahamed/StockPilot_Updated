@@ -1,8 +1,15 @@
-# Architecture
+# System Architecture
 
 How StockPilot is put together, where code lives, and which rules keep the
-layers honest. For the product scope (what it does), see
-[`ProjectDetails.md`](ProjectDetails.md).
+layers honest.
+
+| Related document | What it covers |
+|------------------|----------------|
+| [`data-flow.md`](data-flow.md) | Request lifecycle and the write/read paths per feature |
+| [`decisions/`](decisions/) | Architecture Decision Records (why, not what) |
+| [`../database/schema.md`](../database/schema.md) | Table-by-table data model |
+| [`../api/authentication.md`](../api/authentication.md) | Token model, tenancy headers, RBAC |
+| [`../ProjectDetails.md`](../ProjectDetails.md) | Functional requirements (FR-1 … FR-37) |
 
 ## System overview
 
@@ -24,12 +31,16 @@ layers honest. For the product scope (what it does), see
                     +-------------------+
 ```
 
-- **Monorepo** (`docs/adr/0001-monorepo-layout.md`): `backend/` + `frontend/`
+- **Monorepo** (`decisions/0001-monorepo-layout.md`): `backend/` + `frontend/`
   versioned and released together.
 - **Database:** PostgreSQL in every runtime; in-memory SQLite in tests
-  (`docs/adr/0002-postgres-primary-sqlite-for-tests.md`).
+  (`decisions/0002-postgres-primary-sqlite-for-tests.md`).
 - **AI:** deterministic SQL-backed answers first, Gemini as an optional
-  rewriter (`docs/adr/0003-offline-first-ai.md`).
+  rewriter (`decisions/0003-offline-first-ai.md`).
+- **Auth:** short-lived access tokens + long-lived refresh tokens
+  (`decisions/0004-jwt-access-refresh.md`).
+- **Stock:** a single writer for `quantity_on_hand`
+  (`decisions/0005-single-stock-writer.md`).
 
 ## Backend layering (`backend/app/`)
 
@@ -46,9 +57,13 @@ Rules of thumb:
 
 1. Routers are **thin**: parse input (`schemas`), resolve the tenant
    (`core/deps.get_current_context`), call one service function, return.
-2. Money and stock rules live in `services/` (`finance_service`,
-   `inventory_service.apply_stock_change` — the single stock writer per
-   `docs/adr/0005-single-stock-writer.md`).
+2. Money rules live in `services/`. Every stock movement appends an
+   `inventory_transactions` ledger row in the same commit as the quantity
+   change; manual adjustments additionally go through the guarded
+   `inventory_service.apply_stock_change`. See
+   [`data-flow.md`](data-flow.md#2-stock-write-path-the-most-important-invariant)
+   for the per-endpoint table and the known gap against
+   `decisions/0005-single-stock-writer.md`.
 3. Tenancy is enforced at the query level: every row read/write is filtered
    by `ctx.business_id`. Cross-tenant access returns `404`, never `403`
    (no id oracle).
@@ -66,17 +81,24 @@ Rules of thumb:
 
 ## Data model (key tables)
 
-- Identity: `users`, `user_businesses`, `businesses`, `password_reset_tokens`
-- Catalogue: `categories`, `products`, `product_images`, `price_adjustments`
+- Identity: `users`, `user_business`, `businesses`, `password_reset_tokens`,
+  `subscriptions`
+- Catalogue: `categories`, `products` (image path on the row — no separate
+  images table)
 - Parties: `suppliers`, `customers`
-- Trading: `purchases`, `purchase_items`, `sales`, `sale_items`, `returns`,
-  `return_items`, `expenses`
-- Stock: `inventory_transactions` (append-only ledger)
-- Platform: `audit_logs`, `subscriptions`, `ai_recommendations`
+- Trading: `purchases`, `purchase_items`, `sales`, `sale_items`,
+  `sale_returns`, `sale_return_items`, `invoice_counters`, `expenses`
+- Stock: `inventory_transactions` (append-only ledger), `price_adjustments`
+- Platform: `audit_logs`, `ai_recommendations`
+
+Every tenant-owned table carries `business_id`. The column-by-column reference,
+unique constraints and indexes are in
+[`../database/schema.md`](../database/schema.md).
 
 Migrations live in `backend/alembic/`; the app also runs
-`Base.metadata.create_all` on startup as a first-boot convenience
-(Alembic is authoritative in production).
+`Base.metadata.create_all` plus `ensure_indexes()` on startup as a first-boot
+convenience (Alembic is authoritative in production). See
+[`../database/migrations.md`](../database/migrations.md).
 
 ## Frontend layering (`frontend/`)
 

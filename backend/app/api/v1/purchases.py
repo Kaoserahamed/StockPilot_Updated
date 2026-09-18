@@ -173,15 +173,19 @@ def cancel(pid: int, ctx: Context = Depends(get_current_context), db: Session = 
     from app.models.inventory import InventoryTransaction
 
     items = db.query(PurchaseItem).filter(PurchaseItem.purchase_id == p.id).all()
+    prods: dict[int, Product] = {}
     for i in items:
         prod = db.query(Product).filter(Product.id == i.product_id).first()
+        if prod is None:
+            raise HTTPException(status_code=404, detail="Product not found")
         if (prod.quantity_on_hand or 0) < i.quantity:
             raise HTTPException(
                 status_code=400, detail=f"Insufficient stock to cancel ({prod.name})"
             )
+        prods[i.id] = prod
     for i in items:
-        prod = db.query(Product).filter(Product.id == i.product_id).first()
-        prod.quantity_on_hand -= i.quantity
+        prod = prods[i.id]
+        prod.quantity_on_hand = (prod.quantity_on_hand or 0) - i.quantity
         db.add(
             InventoryTransaction(
                 business_id=ctx.business_id,

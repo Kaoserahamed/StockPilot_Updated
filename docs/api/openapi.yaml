@@ -1,0 +1,5357 @@
+openapi: 3.1.0
+info:
+  title: StockPilot - Inventory & POS SaaS
+  description: '
+
+    ## StockPilot API - Inventory & POS SaaS
+
+
+    Multi-tenant inventory management, point-of-sale, finance tracking, and AI insights
+
+    for small businesses.
+
+
+    ### Authentication
+
+    All API endpoints require a Bearer token in the Authorization header:
+
+    `Authorization: Bearer <access_token>`
+
+
+    Include the business ID in the X-Business-Id header:
+
+    `X-Business-Id: <business_id>`
+
+
+    ### Rate Limiting
+
+    - Default: 100 requests per minute per user
+
+    - Auth endpoints: 5 requests per minute per IP
+
+
+    ### Support
+
+    For issues and feature requests, contact support.
+
+    '
+  version: 1.0.0
+paths:
+  /health:
+    get:
+      tags:
+      - health
+      summary: Health
+      description: Liveness probe - always returns 200 if the process is running.
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Health Health Get
+  /health/live:
+    get:
+      tags:
+      - health
+      summary: Health Live
+      description: Liveness alias used by orchestrators that expect a ``/live`` path.
+      operationId: health_live_health_live_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Health Live Health Live Get
+  /health/ready:
+    get:
+      tags:
+      - health
+      summary: Health Ready
+      description: Readiness probe - verifies database connectivity.
+      operationId: health_ready_health_ready_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /health/detailed:
+    get:
+      tags:
+      - health
+      summary: Health Detailed
+      description: Detailed health status including dependencies and error tracking.
+      operationId: health_detailed_health_detailed_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Health Detailed Health Detailed Get
+  /api/v1/audit-logs:
+    get:
+      tags:
+      - audit
+      summary: List Audit Logs
+      description: 'FR-27.1/27.2: review who changed what, filterable by action or resource.
+
+
+        Tenant-scoped: a business never sees another tenant''s trail. Access is
+
+        restricted to Owner/Manager as required by FR-25.4.'
+      operationId: list_audit_logs_api_v1_audit_logs_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: action
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Action
+      - name: resource
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resource
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000
+          minimum: 1
+          default: 200
+          title: Limit
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLogOut'
+                title: Response List Audit Logs Api V1 Audit Logs Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/register:
+    post:
+      tags:
+      - auth
+      summary: Register
+      operationId: register_api_v1_auth_register_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/login:
+    post:
+      tags:
+      - auth
+      summary: Login
+      operationId: login_api_v1_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/refresh:
+    post:
+      tags:
+      - auth
+      summary: Refresh Token
+      description: Exchange a valid refresh token for a new access + refresh token pair.
+      operationId: refresh_token_api_v1_auth_refresh_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+              title: Payload
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/logout:
+    post:
+      tags:
+      - auth
+      summary: Logout
+      operationId: logout_api_v1_auth_logout_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/auth/me:
+    get:
+      tags:
+      - auth
+      summary: Me
+      operationId: me_api_v1_auth_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOut'
+      security:
+      - HTTPBearer: []
+  /api/v1/auth/forgot-password:
+    post:
+      tags:
+      - auth
+      summary: Forgot Password
+      operationId: forgot_password_api_v1_auth_forgot_password_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/reset-password:
+    post:
+      tags:
+      - auth
+      summary: Reset Password
+      operationId: reset_password_api_v1_auth_reset_password_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/businesses/me:
+    get:
+      tags:
+      - businesses
+      summary: Get My Business
+      operationId: get_my_business_api_v1_businesses_me_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - businesses
+      summary: Update My Business
+      operationId: update_my_business_api_v1_businesses_me_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/businesses:
+    post:
+      tags:
+      - businesses
+      summary: Create Business
+      description: 'FR-2.1 / FR-24: authenticated owner can create an additional business profile.'
+      operationId: create_business_api_v1_businesses_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/businesses/me/logo:
+    post:
+      tags:
+      - businesses
+      summary: Upload Logo
+      description: 'FR-2.2: store business logo. Local filesystem initially.'
+      operationId: upload_logo_api_v1_businesses_me_logo_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_logo_api_v1_businesses_me_logo_post'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/employees:
+    get:
+      tags:
+      - employees
+      summary: List Employees
+      operationId: list_employees_api_v1_employees_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmployeeOut'
+                title: Response List Employees Api V1 Employees Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - employees
+      summary: Create Employee
+      operationId: create_employee_api_v1_employees_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/employees/{membership_id}/deactivate:
+    post:
+      tags:
+      - employees
+      summary: Deactivate
+      operationId: deactivate_api_v1_employees__membership_id__deactivate_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: membership_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Membership Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/employees/{membership_id}/activate:
+    post:
+      tags:
+      - employees
+      summary: Activate
+      operationId: activate_api_v1_employees__membership_id__activate_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: membership_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Membership Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/employees/{membership_id}/role:
+    patch:
+      tags:
+      - employees
+      summary: Update Role
+      description: 'FR-3.3/FR-26.2: owner can re-assign employee roles.'
+      operationId: update_role_api_v1_employees__membership_id__role_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: membership_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Membership Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeRoleUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/employees/{membership_id}/reset-password:
+    post:
+      tags:
+      - employees
+      summary: Reset Password
+      description: 'FR-26.4: owner resets an employee''s password (then shares it out-of-band).'
+      operationId: reset_password_api_v1_employees__membership_id__reset_password_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: membership_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Membership Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeResetRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/employees/{membership_id}:
+    delete:
+      tags:
+      - employees
+      summary: Remove
+      operationId: remove_api_v1_employees__membership_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: membership_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Membership Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/categories:
+    get:
+      tags:
+      - categories
+      summary: List All
+      operationId: list_all_api_v1_categories_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryOut'
+                title: Response List All Api V1 Categories Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - categories
+      summary: Create
+      operationId: create_api_v1_categories_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/categories/{cat_id}:
+    patch:
+      tags:
+      - categories
+      summary: Update
+      operationId: update_api_v1_categories__cat_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: cat_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Cat Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - categories
+      summary: Delete
+      description: 'FR-4.4: prevent deletion when products exist unless reassigned.'
+      operationId: delete_api_v1_categories__cat_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: cat_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Cat Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/categories/{cat_id}/deactivate:
+    post:
+      tags:
+      - categories
+      summary: Deactivate
+      operationId: deactivate_api_v1_categories__cat_id__deactivate_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: cat_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Cat Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/products:
+    get:
+      tags:
+      - products
+      summary: List Products
+      operationId: list_products_api_v1_products_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Q
+      - name: category_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Category Id
+      - name: brand
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Brand
+      - name: low_stock
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Low Stock
+      - name: out_of_stock
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Out Of Stock
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductOut'
+                title: Response List Products Api V1 Products Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - products
+      summary: Create
+      operationId: create_api_v1_products_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/products/{pid}:
+    get:
+      tags:
+      - products
+      summary: Get One
+      operationId: get_one_api_v1_products__pid__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: pid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - products
+      summary: Update
+      operationId: update_api_v1_products__pid__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: pid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/products/{pid}/deactivate:
+    post:
+      tags:
+      - products
+      summary: Deactivate
+      operationId: deactivate_api_v1_products__pid__deactivate_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: pid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/products/{pid}/activate:
+    post:
+      tags:
+      - products
+      summary: Activate
+      description: 'Re-activate a deactivated product (idempotent — activating an active
+
+        product simply returns it unchanged).'
+      operationId: activate_api_v1_products__pid__activate_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: pid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/products/{pid}/image:
+    post:
+      tags:
+      - products
+      summary: Upload Image
+      operationId: upload_image_api_v1_products__pid__image_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: pid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_image_api_v1_products__pid__image_post'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/suppliers:
+    get:
+      tags:
+      - parties
+      - suppliers
+      summary: List Sup
+      operationId: list_sup_api_v1_suppliers_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupplierOut'
+                title: Response List Sup Api V1 Suppliers Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - parties
+      - suppliers
+      summary: Create Sup
+      operationId: create_sup_api_v1_suppliers_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/suppliers/{sid}:
+    patch:
+      tags:
+      - parties
+      - suppliers
+      summary: Update Sup
+      operationId: update_sup_api_v1_suppliers__sid__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: sid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Sid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/suppliers/{sid}/deactivate:
+    post:
+      tags:
+      - parties
+      - suppliers
+      summary: Deact Sup
+      operationId: deact_sup_api_v1_suppliers__sid__deactivate_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: sid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Sid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/suppliers/{sid}/purchases:
+    get:
+      tags:
+      - parties
+      - suppliers
+      summary: Sup History
+      operationId: sup_history_api_v1_suppliers__sid__purchases_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: sid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Sid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/customers:
+    get:
+      tags:
+      - parties
+      - customers
+      summary: List Cust
+      operationId: list_cust_api_v1_customers_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerOut'
+                title: Response List Cust Api V1 Customers Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - parties
+      - customers
+      summary: Create Cust
+      operationId: create_cust_api_v1_customers_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/customers/{cid}:
+    patch:
+      tags:
+      - parties
+      - customers
+      summary: Update Cust
+      operationId: update_cust_api_v1_customers__cid__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: cid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Cid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/customers/{cid}/sales:
+    get:
+      tags:
+      - parties
+      - customers
+      summary: Cust History
+      operationId: cust_history_api_v1_customers__cid__sales_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: cid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Cid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inventory/overview:
+    get:
+      tags:
+      - inventory
+      summary: Overview
+      description: 'FR-9.4/9.5: overview + filter by category, status, stock condition.'
+      operationId: overview_api_v1_inventory_overview_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: category_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Category Id
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - name: stock
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: low|out|ok
+          title: Stock
+        description: low|out|ok
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 5000
+          minimum: 1
+          default: 500
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inventory/low-stock:
+    get:
+      tags:
+      - inventory
+      summary: Low Stock
+      operationId: low_stock_api_v1_inventory_low_stock_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inventory/out-of-stock:
+    get:
+      tags:
+      - inventory
+      summary: Out Of Stock
+      operationId: out_of_stock_api_v1_inventory_out_of_stock_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inventory/transactions:
+    get:
+      tags:
+      - inventory
+      summary: Transactions
+      operationId: transactions_api_v1_inventory_transactions_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: product_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Product Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryTxOut'
+                title: Response Transactions Api V1 Inventory Transactions Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inventory/adjust:
+    post:
+      tags:
+      - inventory
+      summary: Adjust
+      operationId: adjust_api_v1_inventory_adjust_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryTxOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inventory/adjust-price:
+    post:
+      tags:
+      - inventory
+      summary: Adjust Price
+      description: Price adjustment (selling / purchase price) with reason + audit + history row.
+      operationId: adjust_price_api_v1_inventory_adjust_price_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriceAdjustRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceAdjustmentOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inventory/price-adjustments:
+    get:
+      tags:
+      - inventory
+      summary: List Price Adjustments
+      description: Recent price adjustments (optionally filtered by product).
+      operationId: list_price_adjustments_api_v1_inventory_price_adjustments_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: product_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Product Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PriceAdjustmentOut'
+                title: Response List Price Adjustments Api V1 Inventory Price Adjustments Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/purchases:
+    get:
+      tags:
+      - purchases
+      summary: List All
+      operationId: list_all_api_v1_purchases_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: supplier_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Supplier Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PurchaseOut'
+                title: Response List All Api V1 Purchases Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - purchases
+      summary: Create
+      description: 'FR-10: multi-item purchase. Totals auto-calculated, stock up on confirm.'
+      operationId: create_api_v1_purchases_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/purchases/{pid}/pay:
+    post:
+      tags:
+      - purchases
+      summary: Pay
+      description: 'FR-10.8: record payment against a purchase, update supplier balance.'
+      operationId: pay_api_v1_purchases__pid__pay_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: pid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchasePayRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/purchases/{pid}/cancel:
+    post:
+      tags:
+      - purchases
+      summary: Cancel
+      description: 'Cancel a purchase: reverse added stock, restore supplier balance.'
+      operationId: cancel_api_v1_purchases__pid__cancel_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: pid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/purchases/{pid}:
+    get:
+      tags:
+      - purchases
+      summary: Get One
+      operationId: get_one_api_v1_purchases__pid__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: pid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/pos/search:
+    get:
+      tags:
+      - sales
+      - pos
+      summary: Pos Search
+      description: 'FR-11.2/11.3: POS product search by name/SKU/barcode (light columns).'
+      operationId: pos_search_api_v1_pos_search_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Q
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 30
+          title: Limit
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/sales/checkout:
+    post:
+      tags:
+      - sales
+      - sales
+      summary: Checkout
+      description: 'FR-11 + FR-12: cart checkout -> sale + stock reduction + invoice number.'
+      operationId: checkout_api_v1_sales_checkout_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaleOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/sales:
+    get:
+      tags:
+      - sales
+      - sales
+      summary: List Sales
+      description: 'FR-12.8: search/filter sales (batched, default 50 — not 200).'
+      operationId: list_sales_api_v1_sales_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: customer_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Customer Id
+      - name: payment_status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Payment Status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SaleOut'
+                title: Response List Sales Api V1 Sales Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/sales/{sale_id}:
+    get:
+      tags:
+      - sales
+      - sales
+      summary: Get Sale
+      operationId: get_sale_api_v1_sales__sale_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: sale_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Sale Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaleOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/sales/{sale_id}/cancel:
+    post:
+      tags:
+      - sales
+      - sales
+      summary: Cancel Sale
+      description: 'FR-27.3: cancel a sale -> restock non-returned qty, fix customer balance, audit.'
+      operationId: cancel_sale_api_v1_sales__sale_id__cancel_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: sale_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Sale Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaleCancelRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaleOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/invoices/{sale_id}:
+    get:
+      tags:
+      - invoices
+      summary: View Invoice
+      description: 'FR-13.3/13.4: view invoice JSON (frontend prints it).'
+      operationId: view_invoice_api_v1_invoices__sale_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: sale_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Sale Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/invoices/{sale_id}/pdf:
+    get:
+      tags:
+      - invoices
+      summary: Download Pdf
+      description: 'FR-13.5: invoice download in PDF format.'
+      operationId: download_pdf_api_v1_invoices__sale_id__pdf_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: sale_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Sale Id
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/returns:
+    post:
+      tags:
+      - returns
+      summary: Create Return
+      description: 'FR-14: full/partial return -> stock up + financial adjustment + audit.'
+      operationId: create_return_api_v1_returns_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReturnCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - returns
+      summary: List Returns
+      operationId: list_returns_api_v1_returns_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReturnOut'
+                title: Response List Returns Api V1 Returns Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/expenses:
+    get:
+      tags:
+      - expenses
+      summary: List All
+      description: 'FR-15.5: expense history with optional category/date filters.'
+      operationId: list_all_api_v1_expenses_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: category
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date To
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExpenseOut'
+                title: Response List All Api V1 Expenses Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - expenses
+      summary: Create
+      description: 'FR-15.1/15.2/15.3: create expense record.'
+      operationId: create_api_v1_expenses_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/expenses/{eid}:
+    patch:
+      tags:
+      - expenses
+      summary: Update
+      description: 'FR-15.4: update expense.'
+      operationId: update_api_v1_expenses__eid__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Eid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - expenses
+      summary: Remove
+      description: 'FR-15.4: remove expense.'
+      operationId: remove_api_v1_expenses__eid__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Eid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/finance/revenue:
+    get:
+      tags:
+      - finance
+      summary: Revenue
+      description: 'FR-16: revenue for a period + trend buckets.'
+      operationId: revenue_api_v1_finance_revenue_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date To
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/finance/cogs:
+    get:
+      tags:
+      - finance
+      summary: Cogs
+      description: 'FR-17: COGS overall + per product.'
+      operationId: cogs_api_v1_finance_cogs_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date To
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/finance/profit:
+    get:
+      tags:
+      - finance
+      summary: Profit
+      description: 'FR-18: gross/net profit for a period.'
+      operationId: profit_api_v1_finance_profit_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date To
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/dashboard:
+    get:
+      tags:
+      - analytics
+      summary: Dashboard
+      description: 'FR-19: KPIs + sales trend + top products + stock alerts.'
+      operationId: dashboard_api_v1_dashboard_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analytics/products:
+    get:
+      tags:
+      - analytics
+      summary: Product Perf
+      description: 'FR-20: product qty/revenue/profit, filterable by range.'
+      operationId: product_perf_api_v1_analytics_products_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date To
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          default: 10
+          title: Limit
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analytics/customers:
+    get:
+      tags:
+      - analytics
+      summary: Customer Perf
+      description: 'FR-21: top/returning customers by spend.'
+      operationId: customer_perf_api_v1_analytics_customers_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          default: 10
+          title: Limit
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analytics/suppliers:
+    get:
+      tags:
+      - analytics
+      summary: Supplier Perf
+      description: 'FR-22: purchase value + outstanding per supplier.'
+      operationId: supplier_perf_api_v1_analytics_suppliers_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date To
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/reports/sales:
+    get:
+      tags:
+      - reports
+      summary: Sales Report
+      description: 'FR-23.1/23.6/23.7/23.8 (+Excel/PDF): sales report.'
+      operationId: sales_report_api_v1_reports_sales_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date To
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Format
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100000
+          minimum: 1
+          default: 2000
+          title: Limit
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/reports/inventory:
+    get:
+      tags:
+      - reports
+      summary: Inventory Report
+      description: 'FR-23.2/23.7/23.8: inventory report + CSV/Excel/PDF export.'
+      operationId: inventory_report_api_v1_reports_inventory_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Format
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100000
+          minimum: 1
+          default: 5000
+          title: Limit
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/reports/purchases:
+    get:
+      tags:
+      - reports
+      summary: Purchase Report
+      description: 'FR-23.3/23.7/23.8: purchase report.'
+      operationId: purchase_report_api_v1_reports_purchases_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Format
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100000
+          minimum: 1
+          default: 2000
+          title: Limit
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/reports/expenses:
+    get:
+      tags:
+      - reports
+      summary: Expense Report
+      description: 'FR-23.4/23.7/23.8: expense report.'
+      operationId: expense_report_api_v1_reports_expenses_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Format
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100000
+          minimum: 1
+          default: 2000
+          title: Limit
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/reports/profit:
+    get:
+      tags:
+      - reports
+      summary: Profit Report
+      description: 'FR-23.5/23.7/23.8: profit report.'
+      operationId: profit_report_api_v1_reports_profit_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Format
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/reports/profit/pdf:
+    get:
+      tags:
+      - reports
+      summary: Profit Pdf
+      description: 'FR-23.8: profit report as PDF download.'
+      operationId: profit_pdf_api_v1_reports_profit_pdf_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/settings:
+    get:
+      tags:
+      - settings
+      summary: Get Settings
+      description: 'FR-28.1/28.2: read business configuration (currency, tax, invoice format...).'
+      operationId: get_settings_api_v1_settings_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - settings
+      summary: Update Settings
+      description: 'FR-28.3: owners update settings; FR-28.4 applied at checkout/invoice time.'
+      operationId: update_settings_api_v1_settings_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/subscription:
+    get:
+      tags:
+      - subscription
+      summary: Get Subscription
+      description: 'FR-29.3/29.6: current plan + usage; visible to Owner/Manager.'
+      operationId: get_subscription_api_v1_subscription_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - subscription
+      summary: Change Plan
+      description: Change plan (demo billing hook). Owner only.
+      operationId: change_plan_api_v1_subscription_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ai/chat:
+    post:
+      tags:
+      - ai
+      summary: Chat
+      description: 'FR-30 + FR-31: natural-language business Q&A over live business data.'
+      operationId: chat_api_v1_ai_chat_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIChatRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIChatResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ai/insights:
+    get:
+      tags:
+      - ai
+      summary: Insights
+      description: 'FR-32: auto business insights from sales/expense/demand data.'
+      operationId: insights_api_v1_ai_insights_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: preset
+        in: query
+        required: false
+        schema:
+          type: string
+          default: month
+          title: Preset
+      - name: save
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Save
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ai/forecast:
+    get:
+      tags:
+      - ai
+      summary: Forecast
+      description: 'FR-33: predicted demand per product + history-derived rate.'
+      operationId: forecast_api_v1_ai_forecast_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: product_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Product Id
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 365
+          minimum: 1
+          default: 30
+          title: Days
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ai/reorder-recommendations:
+    get:
+      tags:
+      - ai
+      summary: Reorder
+      description: 'FR-34: reorder quantities from stock + velocity + min-stock + forecast.'
+      operationId: reorder_api_v1_ai_reorder_recommendations_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 365
+          minimum: 1
+          default: 30
+          title: Days
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ai/anomalies:
+    get:
+      tags:
+      - ai
+      summary: Anomalies
+      description: 'FR-35: unusual sales patterns with supporting info.'
+      operationId: anomalies_api_v1_ai_anomalies_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ai/summarize:
+    post:
+      tags:
+      - ai
+      summary: Summarize
+      description: 'FR-36: NL summary of a sales/expense/inventory/profit report.'
+      operationId: summarize_api_v1_ai_summarize_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AISummaryRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ai/recommendations:
+    get:
+      tags:
+      - ai
+      summary: List Recs
+      description: 'FR-37.3: review previous AI recommendations.'
+      operationId: list_recs_api_v1_ai_recommendations_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AIRecommendationOut'
+                title: Response List Recs Api V1 Ai Recommendations Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ai/recommendations/{rid}:
+    patch:
+      tags:
+      - ai
+      summary: Update Rec
+      description: 'FR-37.5: mark recommendations reviewed / acted upon.'
+      operationId: update_rec_api_v1_ai_recommendations__rid__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: rid
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Rid
+      - name: X-Business-Id
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: X-Business-Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIRecommendationUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIRecommendationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    AIChatRequest:
+      properties:
+        question:
+          type: string
+          maxLength: 2000
+          minLength: 1
+          title: Question
+        save:
+          type: boolean
+          title: Save
+          default: true
+      type: object
+      required:
+      - question
+      title: AIChatRequest
+    AIChatResponse:
+      properties:
+        answer:
+          type: string
+          title: Answer
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        recommendation_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Recommendation Id
+      type: object
+      required:
+      - answer
+      - data
+      title: AIChatResponse
+    AIRecommendationOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        kind:
+          type: string
+          title: Kind
+        title:
+          type: string
+          title: Title
+        body:
+          type: string
+          title: Body
+        reviewed:
+          type: boolean
+          title: Reviewed
+        acted_upon:
+          type: boolean
+          title: Acted Upon
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - kind
+      - title
+      - body
+      - reviewed
+      - acted_upon
+      - created_at
+      title: AIRecommendationOut
+    AIRecommendationUpdate:
+      properties:
+        reviewed:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Reviewed
+        acted_upon:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Acted Upon
+      type: object
+      title: AIRecommendationUpdate
+    AISummaryRequest:
+      properties:
+        kind:
+          type: string
+          pattern: ^(sales|expenses|inventory|profit)$
+          title: Kind
+        preset:
+          type: string
+          title: Preset
+          default: month
+      type: object
+      required:
+      - kind
+      title: AISummaryRequest
+    AdjustRequest:
+      properties:
+        product_id:
+          type: integer
+          title: Product Id
+        quantity_change:
+          type: integer
+          title: Quantity Change
+        reason:
+          type: string
+          minLength: 1
+          title: Reason
+      type: object
+      required:
+      - product_id
+      - quantity_change
+      - reason
+      title: AdjustRequest
+    AuditLogOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        user_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: User Id
+        action:
+          type: string
+          title: Action
+        resource:
+          type: string
+          title: Resource
+        resource_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resource Id
+        old_value:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Old Value
+        new_value:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: New Value
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - action
+      - resource
+      - created_at
+      title: AuditLogOut
+      description: One recorded mutation, newest first.
+    Body_upload_image_api_v1_products__pid__image_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_image_api_v1_products__pid__image_post
+    Body_upload_logo_api_v1_businesses_me_logo_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_logo_api_v1_businesses_me_logo_post
+    BusinessCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Name
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Email
+        currency:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Currency
+          default: BDT
+        tax_rate:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Tax Rate
+          default: 0.0
+      type: object
+      required:
+      - name
+      title: BusinessCreate
+    BusinessOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        logo_path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Logo Path
+        currency:
+          type: string
+          title: Currency
+        tax_rate:
+          type: number
+          title: Tax Rate
+        invoice_format:
+          type: string
+          title: Invoice Format
+        min_stock_default:
+          type: integer
+          title: Min Stock Default
+      type: object
+      required:
+      - id
+      - name
+      - address
+      - phone
+      - email
+      - logo_path
+      - currency
+      - tax_rate
+      - invoice_format
+      - min_stock_default
+      title: BusinessOut
+    BusinessUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Email
+        currency:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Currency
+        tax_rate:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Tax Rate
+        invoice_format:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Invoice Format
+        min_stock_default:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Stock Default
+      type: object
+      title: BusinessUpdate
+    CartItemIn:
+      properties:
+        product_id:
+          type: integer
+          title: Product Id
+        quantity:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Quantity
+        unit_price:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Unit Price
+        discount:
+          type: number
+          title: Discount
+          default: 0
+      type: object
+      required:
+      - product_id
+      - quantity
+      title: CartItemIn
+    CategoryCreate:
+      properties:
+        name:
+          type: string
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+      type: object
+      required:
+      - name
+      title: CategoryCreate
+    CategoryOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        is_active:
+          type: boolean
+          title: Is Active
+      type: object
+      required:
+      - id
+      - name
+      - description
+      - is_active
+      title: CategoryOut
+    CategoryUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        is_active:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Active
+      type: object
+      title: CategoryUpdate
+    CheckoutRequest:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/CartItemIn'
+          type: array
+          minItems: 1
+          title: Items
+        customer_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Customer Id
+        discount_amount:
+          type: number
+          title: Discount Amount
+          default: 0
+        tax_percent:
+          type: number
+          title: Tax Percent
+          default: 0
+        paid_amount:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Paid Amount
+        payment_method:
+          type: string
+          title: Payment Method
+          default: cash
+      type: object
+      required:
+      - items
+      title: CheckoutRequest
+    CustomerCreate:
+      properties:
+        name:
+          type: string
+          title: Name
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Email
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+        credit_limit:
+          type: number
+          title: Credit Limit
+          default: 0
+      type: object
+      required:
+      - name
+      title: CustomerCreate
+    CustomerOut:
+      properties:
+        name:
+          type: string
+          title: Name
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Email
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+        credit_limit:
+          type: number
+          title: Credit Limit
+          default: 0
+        id:
+          type: integer
+          title: Id
+        outstanding_balance:
+          type: number
+          title: Outstanding Balance
+        is_active:
+          type: boolean
+          title: Is Active
+      type: object
+      required:
+      - name
+      - id
+      - outstanding_balance
+      - is_active
+      title: CustomerOut
+    EmployeeCreate:
+      properties:
+        name:
+          type: string
+          title: Name
+        email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Email
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        password:
+          type: string
+          maxLength: 128
+          minLength: 8
+          title: Password
+        role:
+          type: string
+          pattern: ^(Owner|Manager|Cashier)$
+          title: Role
+      type: object
+      required:
+      - name
+      - password
+      - role
+      title: EmployeeCreate
+    EmployeeOut:
+      properties:
+        membership_id:
+          type: integer
+          title: Membership Id
+        user:
+          $ref: '#/components/schemas/UserOut'
+        role:
+          type: string
+          title: Role
+        is_active:
+          type: boolean
+          title: Is Active
+      type: object
+      required:
+      - membership_id
+      - user
+      - role
+      - is_active
+      title: EmployeeOut
+    EmployeeResetRequest:
+      properties:
+        new_password:
+          type: string
+          maxLength: 128
+          minLength: 6
+          title: New Password
+      type: object
+      required:
+      - new_password
+      title: EmployeeResetRequest
+    EmployeeRoleUpdate:
+      properties:
+        role:
+          type: string
+          pattern: ^(Owner|Manager|Cashier)$
+          title: Role
+      type: object
+      required:
+      - role
+      title: EmployeeRoleUpdate
+    ExpenseCreate:
+      properties:
+        category:
+          type: string
+          maxLength: 50
+          minLength: 1
+          title: Category
+        amount:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Amount
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        expense_date:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Expense Date
+        payment_method:
+          type: string
+          title: Payment Method
+          default: cash
+      type: object
+      required:
+      - category
+      - amount
+      title: ExpenseCreate
+    ExpenseOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        category:
+          type: string
+          title: Category
+        amount:
+          type: number
+          title: Amount
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        expense_date:
+          type: string
+          format: date-time
+          title: Expense Date
+        payment_method:
+          type: string
+          title: Payment Method
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - category
+      - amount
+      - expense_date
+      - payment_method
+      - created_at
+      title: ExpenseOut
+    ExpenseUpdate:
+      properties:
+        category:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Category
+        amount:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Amount
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        expense_date:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Expense Date
+        payment_method:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Payment Method
+      type: object
+      title: ExpenseUpdate
+    ForgotPasswordRequest:
+      properties:
+        username:
+          type: string
+          title: Username
+      type: object
+      required:
+      - username
+      title: ForgotPasswordRequest
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    InventoryTxOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        product_id:
+          type: integer
+          title: Product Id
+        quantity_change:
+          type: integer
+          title: Quantity Change
+        tx_type:
+          type: string
+          title: Tx Type
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        user_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: User Id
+        related_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Related Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - product_id
+      - quantity_change
+      - tx_type
+      - reason
+      - user_id
+      - related_id
+      - created_at
+      title: InventoryTxOut
+    LoginRequest:
+      properties:
+        username:
+          type: string
+          title: Username
+        password:
+          type: string
+          title: Password
+      type: object
+      required:
+      - username
+      - password
+      title: LoginRequest
+    PriceAdjustRequest:
+      properties:
+        product_id:
+          type: integer
+          title: Product Id
+        new_selling_price:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: New Selling Price
+        new_purchase_price:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: New Purchase Price
+        reason:
+          type: string
+          minLength: 1
+          title: Reason
+      type: object
+      required:
+      - product_id
+      - reason
+      title: PriceAdjustRequest
+      description: 'Optional-field price adjustment: provide sell price, cost price or both.'
+    PriceAdjustmentOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        product_id:
+          type: integer
+          title: Product Id
+        old_selling_price:
+          type: number
+          title: Old Selling Price
+        new_selling_price:
+          type: number
+          title: New Selling Price
+        old_purchase_price:
+          type: number
+          title: Old Purchase Price
+        new_purchase_price:
+          type: number
+          title: New Purchase Price
+        reason:
+          type: string
+          title: Reason
+        user_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: User Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - product_id
+      - old_selling_price
+      - new_selling_price
+      - old_purchase_price
+      - new_purchase_price
+      - reason
+      - user_id
+      - created_at
+      title: PriceAdjustmentOut
+    ProductCreate:
+      properties:
+        name:
+          type: string
+          title: Name
+        sku:
+          type: string
+          title: Sku
+        barcode:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Barcode
+        category_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Category Id
+        brand:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Brand
+        unit:
+          type: string
+          title: Unit
+          default: pcs
+        purchase_price:
+          type: number
+          title: Purchase Price
+          default: 0
+        selling_price:
+          type: number
+          title: Selling Price
+          default: 0
+        min_stock:
+          type: integer
+          title: Min Stock
+          default: 5
+      type: object
+      required:
+      - name
+      - sku
+      title: ProductCreate
+    ProductOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+        sku:
+          type: string
+          title: Sku
+        barcode:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Barcode
+        category_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Category Id
+        brand:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Brand
+        unit:
+          type: string
+          title: Unit
+        purchase_price:
+          type: number
+          title: Purchase Price
+        selling_price:
+          type: number
+          title: Selling Price
+        min_stock:
+          type: integer
+          title: Min Stock
+        quantity_on_hand:
+          type: integer
+          title: Quantity On Hand
+        is_active:
+          type: boolean
+          title: Is Active
+        image_path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Image Path
+      type: object
+      required:
+      - id
+      - name
+      - sku
+      - barcode
+      - category_id
+      - brand
+      - unit
+      - purchase_price
+      - selling_price
+      - min_stock
+      - quantity_on_hand
+      - is_active
+      - image_path
+      title: ProductOut
+    ProductUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        category_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Category Id
+        brand:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Brand
+        unit:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Unit
+        purchase_price:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Purchase Price
+        selling_price:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Selling Price
+        min_stock:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Stock
+        is_active:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Active
+      type: object
+      title: ProductUpdate
+    PurchaseCreate:
+      properties:
+        supplier_id:
+          type: integer
+          title: Supplier Id
+        items:
+          items:
+            $ref: '#/components/schemas/PurchaseItemIn'
+          type: array
+          minItems: 1
+          title: Items
+        discount_amount:
+          type: number
+          title: Discount Amount
+          default: 0
+        tax_amount:
+          type: number
+          title: Tax Amount
+          default: 0
+        paid_amount:
+          type: number
+          title: Paid Amount
+          default: 0
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+      type: object
+      required:
+      - supplier_id
+      - items
+      title: PurchaseCreate
+    PurchaseItemIn:
+      properties:
+        product_id:
+          type: integer
+          title: Product Id
+        quantity:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Quantity
+        unit_cost:
+          type: number
+          minimum: 0.0
+          title: Unit Cost
+      type: object
+      required:
+      - product_id
+      - quantity
+      - unit_cost
+      title: PurchaseItemIn
+    PurchaseItemOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        product_id:
+          type: integer
+          title: Product Id
+        product_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Product Name
+        quantity:
+          type: integer
+          title: Quantity
+        unit_cost:
+          type: number
+          title: Unit Cost
+        line_total:
+          type: number
+          title: Line Total
+      type: object
+      required:
+      - id
+      - product_id
+      - quantity
+      - unit_cost
+      - line_total
+      title: PurchaseItemOut
+    PurchaseOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        supplier_id:
+          type: integer
+          title: Supplier Id
+        supplier_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Supplier Name
+        purchase_date:
+          type: string
+          format: date-time
+          title: Purchase Date
+        subtotal:
+          type: number
+          title: Subtotal
+        discount_amount:
+          type: number
+          title: Discount Amount
+        tax_amount:
+          type: number
+          title: Tax Amount
+        total_amount:
+          type: number
+          title: Total Amount
+        paid_amount:
+          type: number
+          title: Paid Amount
+        payment_status:
+          type: string
+          title: Payment Status
+        status:
+          type: string
+          title: Status
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+        items:
+          items:
+            $ref: '#/components/schemas/PurchaseItemOut'
+          type: array
+          title: Items
+          default: []
+      type: object
+      required:
+      - id
+      - supplier_id
+      - purchase_date
+      - subtotal
+      - discount_amount
+      - tax_amount
+      - total_amount
+      - paid_amount
+      - payment_status
+      - status
+      title: PurchaseOut
+    PurchasePayRequest:
+      properties:
+        amount:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Amount
+      type: object
+      required:
+      - amount
+      title: PurchasePayRequest
+    RegisterRequest:
+      properties:
+        owner_name:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Owner Name
+        email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Email
+        phone:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Phone
+        password:
+          type: string
+          maxLength: 128
+          minLength: 8
+          title: Password
+        business_name:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Business Name
+        business_address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Business Address
+        business_phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Business Phone
+      type: object
+      required:
+      - owner_name
+      - password
+      - business_name
+      title: RegisterRequest
+    ResetPasswordRequest:
+      properties:
+        token:
+          type: string
+          title: Token
+        new_password:
+          type: string
+          maxLength: 128
+          minLength: 8
+          title: New Password
+      type: object
+      required:
+      - token
+      - new_password
+      title: ResetPasswordRequest
+    ReturnCreate:
+      properties:
+        sale_id:
+          type: integer
+          title: Sale Id
+        reason:
+          type: string
+          minLength: 1
+          title: Reason
+        items:
+          items:
+            $ref: '#/components/schemas/ReturnItemIn'
+          type: array
+          minItems: 1
+          title: Items
+      type: object
+      required:
+      - sale_id
+      - reason
+      - items
+      title: ReturnCreate
+    ReturnItemIn:
+      properties:
+        sale_item_id:
+          type: integer
+          title: Sale Item Id
+        quantity:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Quantity
+      type: object
+      required:
+      - sale_item_id
+      - quantity
+      title: ReturnItemIn
+    ReturnOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        sale_id:
+          type: integer
+          title: Sale Id
+        reason:
+          type: string
+          title: Reason
+        refund_amount:
+          type: number
+          title: Refund Amount
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - sale_id
+      - reason
+      - refund_amount
+      - created_at
+      title: ReturnOut
+    SaleCancelRequest:
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          title: Reason
+      type: object
+      required:
+      - reason
+      title: SaleCancelRequest
+    SaleItemOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        product_id:
+          type: integer
+          title: Product Id
+        product_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Product Name
+        quantity:
+          type: integer
+          title: Quantity
+        unit_price:
+          type: number
+          title: Unit Price
+        discount:
+          type: number
+          title: Discount
+        line_total:
+          type: number
+          title: Line Total
+        returned_qty:
+          type: integer
+          title: Returned Qty
+      type: object
+      required:
+      - id
+      - product_id
+      - quantity
+      - unit_price
+      - discount
+      - line_total
+      - returned_qty
+      title: SaleItemOut
+    SaleOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        invoice_no:
+          type: string
+          title: Invoice No
+        customer_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Customer Id
+        customer_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Customer Name
+        subtotal:
+          type: number
+          title: Subtotal
+        discount_amount:
+          type: number
+          title: Discount Amount
+        tax_percent:
+          type: number
+          title: Tax Percent
+        tax_amount:
+          type: number
+          title: Tax Amount
+        total_amount:
+          type: number
+          title: Total Amount
+        paid_amount:
+          type: number
+          title: Paid Amount
+        payment_method:
+          type: string
+          title: Payment Method
+        payment_status:
+          type: string
+          title: Payment Status
+        status:
+          type: string
+          title: Status
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        items:
+          items:
+            $ref: '#/components/schemas/SaleItemOut'
+          type: array
+          title: Items
+          default: []
+      type: object
+      required:
+      - id
+      - invoice_no
+      - subtotal
+      - discount_amount
+      - tax_percent
+      - tax_amount
+      - total_amount
+      - paid_amount
+      - payment_method
+      - payment_status
+      - status
+      - created_at
+      title: SaleOut
+    SettingsOut:
+      properties:
+        currency:
+          type: string
+          title: Currency
+        tax_rate:
+          type: number
+          title: Tax Rate
+        invoice_format:
+          type: string
+          title: Invoice Format
+        min_stock_default:
+          type: integer
+          title: Min Stock Default
+        business_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Business Name
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+      type: object
+      required:
+      - currency
+      - tax_rate
+      - invoice_format
+      - min_stock_default
+      title: SettingsOut
+    SettingsUpdate:
+      properties:
+        currency:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Currency
+        tax_rate:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Tax Rate
+        invoice_format:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Invoice Format
+        min_stock_default:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Stock Default
+        business_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Business Name
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Email
+      type: object
+      title: SettingsUpdate
+    SubscriptionOut:
+      properties:
+        plan:
+          type: string
+          title: Plan
+        status:
+          type: string
+          title: Status
+        product_limit:
+          type: integer
+          title: Product Limit
+        employee_limit:
+          type: integer
+          title: Employee Limit
+        product_count:
+          type: integer
+          title: Product Count
+        employee_count:
+          type: integer
+          title: Employee Count
+        product_usage_pct:
+          type: number
+          title: Product Usage Pct
+        employee_usage_pct:
+          type: number
+          title: Employee Usage Pct
+        near_limit:
+          type: boolean
+          title: Near Limit
+        at_limit:
+          type: boolean
+          title: At Limit
+        message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message
+      type: object
+      required:
+      - plan
+      - status
+      - product_limit
+      - employee_limit
+      - product_count
+      - employee_count
+      - product_usage_pct
+      - employee_usage_pct
+      - near_limit
+      - at_limit
+      title: SubscriptionOut
+    SubscriptionUpdate:
+      properties:
+        plan:
+          type: string
+          pattern: ^(free|basic|pro)$
+          title: Plan
+      type: object
+      required:
+      - plan
+      title: SubscriptionUpdate
+    SupplierCreate:
+      properties:
+        company_name:
+          type: string
+          title: Company Name
+        contact_person:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Contact Person
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Email
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+      type: object
+      required:
+      - company_name
+      title: SupplierCreate
+    SupplierOut:
+      properties:
+        company_name:
+          type: string
+          title: Company Name
+        contact_person:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Contact Person
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Email
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+        id:
+          type: integer
+          title: Id
+        outstanding_balance:
+          type: number
+          title: Outstanding Balance
+        is_active:
+          type: boolean
+          title: Is Active
+      type: object
+      required:
+      - company_name
+      - id
+      - outstanding_balance
+      - is_active
+      title: SupplierOut
+    TokenResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        refresh_token:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Refresh Token
+        token_type:
+          type: string
+          title: Token Type
+          default: bearer
+      type: object
+      required:
+      - access_token
+      title: TokenResponse
+    UserOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        is_active:
+          type: boolean
+          title: Is Active
+      type: object
+      required:
+      - id
+      - name
+      - email
+      - phone
+      - is_active
+      title: UserOut
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer

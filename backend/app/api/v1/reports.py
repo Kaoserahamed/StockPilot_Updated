@@ -211,7 +211,10 @@ def purchase_report(
         }
         for p in rows
     ]
-    summary = {"orders": len(data), "total": round(sum(r["total"] or 0 for r in data), 2)}
+    summary = {
+        "orders": len(data),
+        "total": round(sum(float(str(r["total"] or 0)) for r in data), 2),
+    }
     exp = _maybe_export(data, format, "purchases")
     if exp is not None:
         return exp

@@ -8,7 +8,7 @@ class RegisterRequest(BaseModel):
     owner_name: str = Field(min_length=1, max_length=255)
     email: EmailStr | None = None
     phone: str | None = Field(default=None, max_length=50)
-    password: str = Field(min_length=6, max_length=128)
+    password: str = Field(min_length=8, max_length=128)
     business_name: str = Field(min_length=1, max_length=255)
     business_address: str | None = None
     business_phone: str | None = None
@@ -31,7 +31,7 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    new_password: str = Field(min_length=6, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 class UserOut(BaseModel):
@@ -49,7 +49,7 @@ class EmployeeCreate(BaseModel):
     name: str
     email: EmailStr | None = None
     phone: str | None = None
-    password: str = Field(min_length=6, max_length=128)
+    password: str = Field(min_length=8, max_length=128)
     role: str = Field(pattern="^(Owner|Manager|Cashier)$")
 
 

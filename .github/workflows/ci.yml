@@ -5,7 +5,7 @@
 # committed credentials, builds every container image, and - on a version tag -
 # publishes the release image to GHCR together with a GitHub Release.
 #
-# Deploying is deliberately still a manual, reviewed step (docs/RUNBOOK.md):
+# Deploying is deliberately still a manual, reviewed step (docs/operations/runbook.md):
 # nothing in this repository pushes to a production environment on its own.
 on:
   pull_request:
@@ -84,11 +84,11 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: |
-            backend/requirements.txt
-            backend/requirements-dev.txt
+            backend/requirements.lock
+            backend/requirements-dev.lock
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Install dependencies (fully pinned test environment)
+        run: pip install -r requirements-dev.lock
 
       - name: Run tests with coverage
         run: pytest --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80
@@ -220,10 +220,10 @@ jobs:
         run: |
           python -m venv .venv
           .venv/bin/python -m pip install --upgrade pip
-          .venv/bin/python -m pip install -r requirements.lock.txt
+          .venv/bin/python -m pip install -r requirements.lock
 
-      - name: Add the test tooling
-        run: .venv/bin/python -m pip install -r requirements-dev.txt
+      - name: Add the fully pinned test tooling
+        run: .venv/bin/python -m pip install -r requirements-dev.lock
 
       - name: Import the app and run the suite against the locked closure
         run: |

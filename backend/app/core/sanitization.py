@@ -75,13 +75,18 @@ def sanitize_phone(value: str | None) -> str | None:
 def validate_password_strength(password: str) -> tuple[bool, str]:
     """Validate password meets minimum security requirements.
 
-    Policy: minimum 6 characters (simple).
+    Policy: at least 8 characters with a letter and a digit (OWASP-aligned
+    baseline; length is the primary factor, composition stays light so
+    passphrases are not punished).
 
     Returns:
         (is_valid, message)
     """
-    if len(password or "") < 6:
-        return False, "Password must be at least 6 characters long"
-    if len(password) > 128:
+    pwd = password or ""
+    if len(pwd) < 8:
+        return False, "Password must be at least 8 characters long"
+    if len(pwd) > 128:
         return False, "Password must not exceed 128 characters"
+    if not any(c.isalpha() for c in pwd) or not any(c.isdigit() for c in pwd):
+        return False, "Password must include at least one letter and one digit"
     return True, "Password meets requirements"

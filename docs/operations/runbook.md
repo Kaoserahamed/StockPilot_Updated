@@ -3,6 +3,11 @@
 Day-to-day operations for StockPilot. Development uses SQLite-backed tests;
 every runtime (dev container, staging, prod) uses PostgreSQL.
 
+Companions: [`monitoring.md`](monitoring.md) (what to watch and alert on),
+[`disaster-recovery.md`](disaster-recovery.md) (backups and restore drills),
+[`../deployment/rollback.md`](../deployment/rollback.md) (bad release),
+[`../deployment/production.md`](../deployment/production.md) (deploy procedure).
+
 ## Environments
 
 | Concern | Backend | Frontend |
@@ -14,14 +19,16 @@ every runtime (dev container, staging, prod) uses PostgreSQL.
 ## Releases and container images
 
 - Cut a release from `main` when CI is green: annotated tag `vX.Y.Z`, then push
-  `main` and the tag. Full checklist: [`RELEASING.md`](RELEASING.md).
+  `main` and the tag. Full checklist: [`../deployment/ci-cd.md`](../deployment/ci-cd.md).
 - The tag runs the `release` job in `.github/workflows/ci.yml`, which publishes
   `ghcr.io/kaoserahamed/stockpilot_updated:<version>` and opens a GitHub Release.
 - Run a specific build:
   `docker run --rm -p 8000:8000 --env-file .env ghcr.io/kaoserahamed/stockpilot_updated:0.1.0`
-  (the repository-root `Dockerfile` installs from `backend/requirements.lock.txt`).
-- Rollback: start the previous image tag; migrations are forward-only, so check
-  `backend/alembic/versions/` before downgrading the schema.
+  (the repository-root `Dockerfile` installs from `backend/requirements.lock`).
+- Rollback: start the previous image tag;
+  [`../deployment/rollback.md`](../deployment/rollback.md) has the procedure and
+  the reason migrations are rolled forward, never down
+  ([`../database/migrations.md`](../database/migrations.md)).
 - Deploying to an environment stays manual - the workflow never pushes to
   production on its own.
 
@@ -42,7 +49,14 @@ cd backend && alembic upgrade head            # apply
 cd backend && alembic revision --autogenerate -m "what changed"
 ```
 
+Authoring rules, verification (`alembic current`, `alembic check`) and recovery
+are in [`../database/migrations.md`](../database/migrations.md). Backup policy,
+retention and restore drills are in
+[`disaster-recovery.md`](disaster-recovery.md).
+
 ## Health & observability
+
+For the metric/log signals to alert on, see [`monitoring.md`](monitoring.md).
 
 - `GET /health` — liveness (process is up).
 - `GET /health/live` — orchestrator alias of liveness.
@@ -61,4 +75,4 @@ cd backend && alembic revision --autogenerate -m "what changed"
 3. Mitigate: restart the container; roll back the last deploy if the
    fingerprint started with it (`CHANGELOG.md` + tags).
 4. Follow up: add/extend the regression test in `backend/tests/` before
-   closing the incident (rule 1 of `CONTRIBUTING.md`).
+   closing the incident (rule 1 of [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md)).

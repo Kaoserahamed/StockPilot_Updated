@@ -1,7 +1,15 @@
+"""JWT helpers and password hashing for StockPilot auth.
+
+HS256 tokens are signed with ``SECRET_KEY`` (see ``app.core.config``); bcrypt
+hashes passwords. PyJWT is the only JWT backend so the ecdsa/rsa/pyasn1 stack
+pulled in by python-jose is not installed.
+"""
+
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
 
 from app.core.config import settings
 
@@ -55,9 +63,9 @@ def decode_token(token: str, expected_type: str = "access") -> str:
         sub: str | None = payload.get("sub")
         token_type: str | None = payload.get("type")
         if sub is None:
-            raise JWTError("missing sub")
+            raise InvalidTokenError("missing sub")
         if token_type != expected_type:
-            raise JWTError(f"expected {expected_type} token, got {token_type}")
+            raise InvalidTokenError(f"expected {expected_type} token, got {token_type}")
         return sub
-    except JWTError as exc:
+    except InvalidTokenError as exc:
         raise ValueError("Invalid or expired token") from exc

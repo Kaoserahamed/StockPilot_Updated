@@ -22,7 +22,8 @@ REPO_ROOT = BACKEND_ROOT.parent
 
 RUNTIME_REQUIREMENTS = BACKEND_ROOT / "requirements.txt"
 DEV_REQUIREMENTS = BACKEND_ROOT / "requirements-dev.txt"
-LOCKFILE = BACKEND_ROOT / "requirements.lock.txt"
+LOCKFILE = BACKEND_ROOT / "requirements.lock"
+DEV_LOCKFILE = BACKEND_ROOT / "requirements-dev.lock"
 ROOT_REQUIREMENTS = REPO_ROOT / "requirements.txt"
 LOCK_GENERATOR = BACKEND_ROOT / "scripts" / "generate_lockfile.py"
 
@@ -55,7 +56,13 @@ def pin_parts(line: str) -> tuple[str, str]:
 
 
 def test_every_manifest_a_fresh_clone_needs_is_committed() -> None:
-    for path in (RUNTIME_REQUIREMENTS, DEV_REQUIREMENTS, LOCKFILE, ROOT_REQUIREMENTS):
+    for path in (
+        RUNTIME_REQUIREMENTS,
+        DEV_REQUIREMENTS,
+        LOCKFILE,
+        DEV_LOCKFILE,
+        ROOT_REQUIREMENTS,
+    ):
         assert path.is_file(), f"{path} is missing from the repository"
 
 
@@ -86,8 +93,21 @@ def test_requirements_use_no_loose_specifiers(path: Path) -> None:
         assert loose not in joined, f"{path.name} uses the loose specifier {loose!r}"
 
 
-def test_lockfile_is_plain_utf8_text() -> None:
-    raw = LOCKFILE.read_bytes()
+LOCKFILES = [LOCKFILE, DEV_LOCKFILE]
+LOCKFILE_IDS = ["runtime-lock", "dev-lock"]
+
+#: Lockfile tooling looks for a canonical ``*.lock`` name, not ``*.lock.txt``.
+LOCKFILE_NAME_RE = re.compile(r"^requirements(-dev)?\.lock$")
+
+
+def test_lockfiles_use_a_canonical_lock_filename() -> None:
+    for path in LOCKFILES:
+        assert LOCKFILE_NAME_RE.match(path.name), f"{path.name} is not a canonical *.lock filename"
+
+
+@pytest.mark.parametrize("path", LOCKFILES, ids=LOCKFILE_IDS)
+def test_lockfile_is_plain_utf8_text(path: Path) -> None:
+    raw = path.read_bytes()
     assert not raw.startswith((b"\xff\xfe", b"\xfe\xff")), "lockfile must not be UTF-16"
     assert b"\x00" not in raw, "lockfile must not contain NUL bytes"
     assert b"\r\n" not in raw, "lockfile must use LF line endings"
@@ -96,8 +116,9 @@ def test_lockfile_is_plain_utf8_text() -> None:
     assert "DO NOT EDIT BY HAND" in text
 
 
-def test_lockfile_pins_a_closure_that_installs_from_the_repository_alone() -> None:
-    lines = requirement_lines(LOCKFILE)
+@pytest.mark.parametrize("path", LOCKFILES, ids=LOCKFILE_IDS)
+def test_lockfile_pins_a_closure_that_installs_from_the_repository_alone(path: Path) -> None:
+    lines = requirement_lines(path)
     assert len(lines) >= 20, "the lockfile should cover the full transitive closure"
     for line in lines:
         assert "==" in line, f"unpinned entry in the lockfile: {line!r}"
@@ -105,16 +126,17 @@ def test_lockfile_pins_a_closure_that_installs_from_the_repository_alone() -> No
             assert forbidden not in line, f"lockfile entry needs an external source: {line!r}"
 
 
-def test_lockfile_has_no_duplicate_entries() -> None:
+@pytest.mark.parametrize("path", LOCKFILES, ids=LOCKFILE_IDS)
+def test_lockfile_has_no_duplicate_entries(path: Path) -> None:
     seen: set[str] = set()
-    for line in requirement_lines(LOCKFILE):
+    for line in requirement_lines(path):
         name, _ = pin_parts(line)
-        assert name not in seen, f"duplicate package in the lockfile: {name}"
+        assert name not in seen, f"duplicate package in {path.name}: {name}"
         seen.add(name)
 
 
 def test_lockfile_covers_every_runtime_pin() -> None:
-    """The lockfile resolves the runtime closure; dev tooling stays separate."""
+    """The runtime lock resolves the runtime closure exactly."""
     locked = dict(pin_parts(line) for line in requirement_lines(LOCKFILE))
     for line in requirement_lines(RUNTIME_REQUIREMENTS):
         name, version = pin_parts(line)
@@ -124,16 +146,34 @@ def test_lockfile_covers_every_runtime_pin() -> None:
         )
 
 
+def test_dev_lockfile_covers_every_pin_in_both_manifests() -> None:
+    """The dev lock resolves runtime + tooling, so a fresh clone installs one tree."""
+    locked = dict(pin_parts(line) for line in requirement_lines(DEV_LOCKFILE))
+    for manifest in (RUNTIME_REQUIREMENTS, DEV_REQUIREMENTS):
+        for line in requirement_lines(manifest):
+            name, version = pin_parts(line)
+            assert name in locked, f"{name} is pinned in {manifest.name} but absent from the dev lock"
+            assert locked[name] == version, (
+                f"{name}=={version} in {manifest.name} does not match the dev lock ({locked[name]})"
+            )
+    # The dev lock is a superset of the runtime lock.
+    runtime = {pin_parts(line)[0] for line in requirement_lines(LOCKFILE)}
+    assert runtime <= set(locked), "the dev lock must also carry the runtime closure"
+
+
 def test_dev_tooling_stays_out_of_the_runtime_manifest() -> None:
     runtime = {pin_parts(line)[0] for line in requirement_lines(RUNTIME_REQUIREMENTS)}
     dev = {pin_parts(line)[0] for line in requirement_lines(DEV_REQUIREMENTS)}
-    for tool in ("pytest", "pytest-cov", "ruff", "mypy", "pip-audit", "pre-commit"):
+    tools = ("pytest", "pytest-cov", "ruff", "mypy", "pip-audit", "pre-commit", "pip-tools")
+    for tool in tools:
         assert tool not in runtime, f"{tool} belongs in requirements-dev.txt, not requirements.txt"
-    assert {"pytest", "ruff", "mypy"} <= dev
+    assert {"pytest", "ruff", "mypy", "pip-tools"} <= dev
 
 
 def test_lockfile_is_regenerable_by_a_committed_script() -> None:
     assert LOCK_GENERATOR.is_file(), "the documented generator must be committed"
     source = LOCK_GENERATOR.read_text(encoding="utf-8")
-    assert "requirements.lock.txt" in source
+    assert "requirements.lock" in source
+    assert "requirements-dev.lock" in source, "the generator must be able to lock the dev closure"
+    assert "--dev" in source
     assert "--dry-run" in source, "the generator must resolve without touching the environment"

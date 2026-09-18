@@ -8,8 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+COPY requirements.txt requirements.lock ./
+RUN pip install --no-cache-dir --prefix=/install -r requirements.lock
 
 # --- Runtime stage ---
 FROM python:3.11-slim

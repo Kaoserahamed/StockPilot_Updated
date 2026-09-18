@@ -14,9 +14,11 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-echo "[devcontainer] Installing the API dependencies (pinned) + test tooling..."
+echo "[devcontainer] Installing the API dependencies (fully pinned) + test tooling..."
 python -m pip install --upgrade pip
-python -m pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+# requirements-dev.lock pins the runtime + tooling closure; requirements.txt +
+# requirements-dev.txt (the direct pins only) work too.
+python -m pip install -r backend/requirements-dev.lock
 
 echo "[devcontainer] Installing frontend dependencies from package-lock.json..."
 npm --prefix frontend ci

@@ -11,7 +11,7 @@ export function escapeHtml(text: string): string {
     '"': '&quot;',
     "'": '&#x27;',
   };
-  return text.replace(/[&<>"']/g, (c) => map[c]);
+  return text.replace(/[&<>"']/g, (c) => map[c] ?? c);
 }
 
 export function sanitizeInput(input: string, maxLength: number = 1000): string {

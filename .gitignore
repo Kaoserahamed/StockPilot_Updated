@@ -7,7 +7,6 @@
 .env
 .env.*
 !.env.example
-!.env.production.example
 *.pem
 *.key
 DEPLOYMENT_CREDENTIALS.txt
@@ -86,10 +85,10 @@ desktop.ini
 *.log
 logs/
 
-# ---------- Uploads (runtime user content) ----------
+# ---------- Uploads (runtime user content - never track) ----------
 backend/uploads/products/*
 !backend/uploads/products/.gitkeep
-
-# Allow logo uploads to be tracked (needed for product branding)
-uploads/logos/
-backend/uploads/logos/
+backend/uploads/logos/*
+!backend/uploads/logos/.gitkeep
+uploads/*
+!uploads/.gitkeep

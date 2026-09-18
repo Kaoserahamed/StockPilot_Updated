@@ -10,6 +10,7 @@ from app.schemas.schemas import (
     EmployeeOut,
     EmployeeResetRequest,
     EmployeeRoleUpdate,
+    UserOut,
 )
 from app.services.audit import write_audit
 
@@ -22,7 +23,9 @@ def _owner(ctx: Context):
 
 
 @router.get("", response_model=list[EmployeeOut])
-def list_employees(ctx: Context = Depends(get_current_context), db: Session = Depends(get_db)):
+def list_employees(
+    ctx: Context = Depends(get_current_context), db: Session = Depends(get_db)
+) -> list[EmployeeOut]:
     if ctx.role not in ("Owner", "Manager"):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     rows = (
@@ -32,7 +35,13 @@ def list_employees(ctx: Context = Depends(get_current_context), db: Session = De
         .all()
     )
     return [
-        EmployeeOut(membership_id=m.id, user=u, role=m.role, is_active=m.is_active) for m, u in rows
+        EmployeeOut(
+            membership_id=m.id,
+            user=UserOut.model_validate(u),
+            role=m.role,
+            is_active=m.is_active,
+        )
+        for m, u in rows
     ]
 
 
@@ -74,7 +83,9 @@ def create_employee(
     db.commit()
     db.refresh(user)
     db.refresh(m)
-    return EmployeeOut(membership_id=m.id, user=user, role=m.role, is_active=m.is_active)
+    return EmployeeOut(
+        membership_id=m.id, user=UserOut.model_validate(user), role=m.role, is_active=m.is_active
+    )
 
 
 @router.post("/{membership_id}/deactivate", response_model=EmployeeOut)
@@ -100,7 +111,11 @@ def deactivate(
     )
     db.commit()
     u = db.query(User).filter(User.id == m.user_id).first()
-    return EmployeeOut(membership_id=m.id, user=u, role=m.role, is_active=m.is_active)
+    if u is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return EmployeeOut(
+        membership_id=m.id, user=UserOut.model_validate(u), role=m.role, is_active=m.is_active
+    )
 
 
 @router.post("/{membership_id}/activate", response_model=EmployeeOut)
@@ -126,7 +141,11 @@ def activate(
     )
     db.commit()
     u = db.query(User).filter(User.id == m.user_id).first()
-    return EmployeeOut(membership_id=m.id, user=u, role=m.role, is_active=m.is_active)
+    if u is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return EmployeeOut(
+        membership_id=m.id, user=UserOut.model_validate(u), role=m.role, is_active=m.is_active
+    )
 
 
 @router.patch("/{membership_id}/role", response_model=EmployeeOut)
@@ -159,7 +178,11 @@ def update_role(
     )
     db.commit()
     u = db.query(User).filter(User.id == m.user_id).first()
-    return EmployeeOut(membership_id=m.id, user=u, role=m.role, is_active=m.is_active)
+    if u is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return EmployeeOut(
+        membership_id=m.id, user=UserOut.model_validate(u), role=m.role, is_active=m.is_active
+    )
 
 
 @router.post("/{membership_id}/reset-password", response_model=EmployeeOut)
@@ -192,7 +215,9 @@ def reset_password(
     )
     db.commit()
     db.refresh(u)
-    return EmployeeOut(membership_id=m.id, user=u, role=m.role, is_active=m.is_active)
+    return EmployeeOut(
+        membership_id=m.id, user=UserOut.model_validate(u), role=m.role, is_active=m.is_active
+    )
 
 
 @router.delete("/{membership_id}")

@@ -94,15 +94,20 @@ setup_timeouts(app)
 
 # --- CORS (registered LAST so it is outermost and wraps every response,
 # --- including timeout 504s, with Access-Control headers) ---
+# A wildcard origin can never be combined with credentials: browsers reject
+# `Access-Control-Allow-Origin: *` + `Allow-Credentials: true`, and it hides
+# origin-allowlist bugs. Wildcard => no credentials; explicit origins => yes.
 if settings.cors_origins.strip() == "*":
     allowed_origins = ["*"]
+    allow_credentials = False
 else:
     allowed_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+    allow_credentials = True
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

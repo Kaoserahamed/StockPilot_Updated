@@ -7,7 +7,8 @@
 #     pip install -r requirements.txt
 #
 # Related files:
-#   backend/requirements.lock.txt   full transitive closure (reproducible)
+#   backend/requirements.lock       full transitive closure (reproducible)
 #   backend/requirements-dev.txt    pytest / ruff / mypy / pip-audit tooling
+#   backend/requirements-dev.lock   locked closure of the tooling above
 # =============================================================================
 -r backend/requirements.txt

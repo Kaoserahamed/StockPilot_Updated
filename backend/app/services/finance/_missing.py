@@ -59,9 +59,9 @@ def _cogs_total(db: Session, business_id: int, start, end) -> float:
     return float(val or 0)
 
 
-def profit_summary(db: Session, business_id: int, start, end) -> dict:
+def profit_summary(db: Session, business_id: int, start: object, end: object) -> dict:
     hit = _memo_get(db, "profit_summary", business_id, start, end)
-    if hit is not None:
+    if isinstance(hit, dict):
         return hit
     rev = (
         db.query(
@@ -72,9 +72,12 @@ def profit_summary(db: Session, business_id: int, start, end) -> dict:
         .filter(*_sale_range_filters(business_id, start, end))
         .first()
     )
-    orders = int(rev[0] or 0)
-    gross = float(rev[1] or 0)
-    refunded = float(rev[2] or 0)
+    if rev is None:
+        orders, gross, refunded = 0, 0.0, 0.0
+    else:
+        orders = int(rev[0] or 0)
+        gross = float(rev[1] or 0)
+        refunded = float(rev[2] or 0)
     net = round(gross - refunded, 2)
     exp = float(
         db.query(func.coalesce(func.sum(Expense.amount), 0))
@@ -117,6 +120,8 @@ def inventory_value(db: Session, business_id: int) -> dict:
         .filter(Product.business_id == business_id, Product.is_active.is_(True))
         .first()
     )
+    if row is None:
+        return {"skus": 0, "units": 0, "cost_value": 0.0, "retail_value": 0.0}
     return {
         "skus": int(row[0] or 0),
         "units": int(row[1] or 0),
@@ -125,7 +130,7 @@ def inventory_value(db: Session, business_id: int) -> dict:
     }
 
 
-def expenses_total(db: Session, business_id: int, start, end) -> dict:
+def expenses_total(db: Session, business_id: int, start: object, end: object) -> dict:
     row = (
         db.query(
             func.count(Expense.id),
@@ -138,6 +143,8 @@ def expenses_total(db: Session, business_id: int, start, end) -> dict:
         )
         .first()
     )
+    if row is None:
+        return {"count": 0, "total": 0.0, "total_expenses": 0.0}
     return {
         "count": int(row[0] or 0),
         "total": float(row[1] or 0),
@@ -145,7 +152,7 @@ def expenses_total(db: Session, business_id: int, start, end) -> dict:
     }
 
 
-def cogs_summary(db: Session, business_id: int, start, end) -> dict:
+def cogs_summary(db: Session, business_id: int, start: object, end: object) -> dict:
     from app.models.product import Product
 
     total = round(_cogs_total(db, business_id, start, end), 2)
@@ -163,10 +170,10 @@ def cogs_summary(db: Session, business_id: int, start, end) -> dict:
         .group_by(SaleItem.product_id)
         .all()
     )
-    names = {}
+    names: dict[int, str] = {}
     if rows:
         ids = [r[0] for r in rows]
-        names = dict(db.query(Product.id, Product.name).filter(Product.id.in_(ids)).all())
+        names = dict(db.query(Product.id, Product.name).filter(Product.id.in_(ids)).all())  # type: ignore[arg-type]
     items = [
         {
             "product_id": r[0],

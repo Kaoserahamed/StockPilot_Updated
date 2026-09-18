@@ -31,14 +31,14 @@ export default defineConfig({
         'services/**/*.ts',
       ],
       thresholds: {
-        // Deliberately close to today's measured coverage (lines ~47.6%,
-        // functions ~42.5%, branches ~76.4% over these four directories). With
-        // `all: true`, adding an untested module lowers the number and fails
-        // the build - that is the point: new code arrives with its tests.
-        lines: 45,
-        functions: 40,
+        // Floors over lib/, hooks/, services/ and components/ (the modules that
+        // carry logic). With `all: true`, adding an untested module lowers the
+        // number and fails the build - that is the point: new code arrives with
+        // its tests. Raise these as the measured numbers climb.
+        lines: 70,
+        functions: 70,
         branches: 70,
-        statements: 45,
+        statements: 70,
       },
     },
   },

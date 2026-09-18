@@ -8,6 +8,7 @@ Provides:
 """
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -35,16 +36,14 @@ def health_live() -> dict:
     return health()
 
 
-@router.get("/health/ready")
-def health_ready(db: Session = Depends(get_db)) -> dict:
+@router.get("/health/ready", response_model=None)
+def health_ready(db: Session = Depends(get_db)) -> dict | JSONResponse:
     """Readiness probe - verifies database connectivity."""
     try:
         db.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception:
         db_status = "disconnected"
-        from fastapi.responses import JSONResponse
-
         return JSONResponse(
             status_code=503,
             content={"status": "not_ready", "database": db_status},

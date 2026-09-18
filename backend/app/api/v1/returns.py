@@ -57,6 +57,8 @@ def create_return(
     for si, qty, ref in lines:
         si.returned_qty = (si.returned_qty or 0) + qty
         prod = db.query(Product).filter(Product.id == si.product_id).first()
+        if prod is None:
+            raise HTTPException(status_code=404, detail="Product not found")
         prod.quantity_on_hand = (prod.quantity_on_hand or 0) + qty
         db.add(
             SaleReturnItem(

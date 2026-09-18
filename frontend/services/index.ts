@@ -3,7 +3,7 @@
  *
  * Pages and hooks import from `@/services` (or a specific module) so that a
  * backend contract change is a one-file edit here rather than a hunt through
- * components. See `docs/ARCHITECTURE.md`.
+ * components. See `docs/architecture/system-architecture.md`.
  */
 
 export * as admin from './admin';

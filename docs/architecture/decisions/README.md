@@ -3,6 +3,10 @@
 Short, dated notes explaining *why* the system looks the way it does. New
 decisions get a new file; old ones are never rewritten.
 
+Context for these decisions lives in
+[`../system-architecture.md`](../system-architecture.md) and the flow-level
+detail in [`../data-flow.md`](../data-flow.md).
+
 ## Index
 
 | ADR | Date | Decision |

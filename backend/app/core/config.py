@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,7 +14,6 @@ class Settings(BaseSettings):
 
     app_name: str = "StockPilot - Inventory & POS SaaS"
     # Database connection string - MUST be set via environment variable
-    # MySQL ex: mysql+pymysql://user:password@localhost:3306/dbname
     # Postgres ex: postgresql+psycopg2://user:password@localhost:5432/dbname
     database_url: str
     secret_key: str  # MUST be set via environment variable
@@ -55,6 +55,38 @@ class Settings(BaseSettings):
     # deterministic analytics answer instead of calling out to Gemini.
     gemini_api_key: str = ""
     gemini_model: str = "gemini-1.5-flash"
+
+    @field_validator("secret_key")
+    @classmethod
+    def _reject_weak_secret_in_production(cls, value: str) -> str:
+        """Fail fast when production would run with a guessable JWT secret.
+
+        Test/dev keeps the short ``test-secret-key-*`` / ``dev-secret-key-*``
+        conveniences used by ``conftest.py`` and ``docker-compose.dev.yml``;
+        anything else running as ``production``/``staging`` must provide a
+        strong random secret (>= 32 chars, not a placeholder).
+        """
+        import os
+
+        env = os.getenv("ENVIRONMENT", "development").lower()
+        if env in {"production", "staging"}:
+            weak_markers = (
+                "test-secret-key",
+                "dev-secret-key",
+                "changeme",
+                "replace-with-",
+                "secret",
+                "password",
+            )
+            lowered = value.lower()
+            if len(value) < 32 or any(m in lowered for m in weak_markers):
+                raise ValueError(
+                    "SECRET_KEY is too weak for production: "
+                    "set a random value of at least 32 characters "
+                    '(generate with `python -c "import secrets; '
+                    'print(secrets.token_urlsafe(48))"`).'
+                )
+        return value
 
     @property
     def ai_enabled(self) -> bool:

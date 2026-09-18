@@ -22,12 +22,16 @@ import logging
 import sys
 
 # python-json-logger is a committed, pinned runtime dependency (see
-# backend/requirements.txt -> python-json-logger==4.2.0), so the import will
-# succeed in every supported environment. The guard below keeps imports cheap
-# and avoids a hard ImportError if a downstream project strips extras.
-import pythonjsonlogger.jsonlogger as _jsonlogger  # type: ignore
+# backend/requirements.txt -> python-json-logger==4.2.0), so this import always
+# succeeds in a supported install. The guard keeps the module importable - with
+# the plain-text formatter only - if a downstream project strips the extra.
+try:
+    import pythonjsonlogger.jsonlogger as _jsonlogger  # type: ignore
 
-_HAS_JSON = True
+    _HAS_JSON = True
+except ImportError:  # pragma: no cover - the dependency is pinned and present
+    _jsonlogger = None  # type: ignore[assignment]
+    _HAS_JSON = False
 
 
 class _ExtraFilter(logging.Filter):
@@ -47,8 +51,9 @@ def setup_logging(level: str = "INFO", json_format: bool = True) -> None:
 
     Args:
         level: Log level string (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-        json_format: If True and python-json-logger is installed, emit JSON.
-                     Falls back to coloured text otherwise.
+        json_format: If True *and* python-json-logger is importable, emit one
+                     JSON object per line. Otherwise fall back to the plain-text
+                     formatter used for local development.
     """
     root = logging.getLogger()
     root.setLevel(level.upper())

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.finance import Expense
 
 
-def expense_summary(db: Session, business_id: int, start, end) -> dict:
+def expense_summary(db: Session, business_id: int, start: object, end: object) -> dict:
     """Total expenses for a period."""
     row = (
         db.query(
@@ -20,10 +20,12 @@ def expense_summary(db: Session, business_id: int, start, end) -> dict:
         )
         .first()
     )
+    if row is None:
+        return {"count": 0, "total": 0.0}
     return {"count": int(row[0] or 0), "total": float(row[1] or 0)}
 
 
-def expense_breakdown(db: Session, business_id: int, start, end) -> list[dict]:
+def expense_breakdown(db: Session, business_id: int, start: object, end: object) -> list[dict]:
     """Expense totals grouped by category."""
     rows = (
         db.query(

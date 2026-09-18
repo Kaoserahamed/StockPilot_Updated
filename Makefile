@@ -1,10 +1,21 @@
 # StockPilot - single entry point for local install, verification and build.
-# Works with GNU make (Linux/macOS, or `choco install make` / Git Bash on Windows).
-# Every target below is the same command CI runs, so "make verify" == "CI is green".
+# Works on Linux/macOS (GNU make + bash) and Windows (Git Bash via
+# `choco install make`, or PowerShell - see CONTRIBUTING.md for equivalents).
+# Every target below runs the same command CI runs, so "make verify" == "CI is green".
 
-SHELL := /bin/bash
+# NOTE: no `SHELL := /bin/bash` on purpose - forcing bash breaks native
+# Windows shells. Targets only use POSIX-portable constructs (`cd ... && ...`)
+# and detect the virtualenv layout (.venv/bin vs .venv/Scripts) at runtime.
 BACKEND := backend
 FRONTEND := frontend
+
+# Portable virtualenv python: .venv/Scripts on Windows, .venv/bin elsewhere.
+VENV_PY := $(BACKEND)/.venv/Scripts/python.exe
+ifeq ($(OS),Windows_NT)
+  RM_RF := powershell -NoProfile -Command "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
+else
+  RM_RF := rm -rf
+endif
 
 .DEFAULT_GOAL := help
 
@@ -12,6 +23,18 @@ FRONTEND := frontend
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: doctor
+doctor: ## Check required tooling (python 3.11+, node 20+, docker, env templates)
+	@python --version
+	@node --version
+	@npm --version
+	@docker --version 2>/dev/null || echo "docker: not installed (only needed for db-up / prod parity)"
+	@test -f .env.example && echo "root .env.example: ok"
+	@test -f $(BACKEND)/.env.example && echo "backend .env.example: ok"
+	@test -f $(FRONTEND)/.env.example && echo "frontend .env.example: ok"
+	@test -f $(BACKEND)/requirements.lock && echo "backend lockfile: ok"
+	@test -f $(BACKEND)/requirements-dev.lock && echo "backend dev lockfile: ok"
 
 # ---------------------------------------------------------------- install ----
 .PHONY: install
@@ -72,6 +95,10 @@ test-cov: ## pytest with a terminal coverage report
 audit: ## Dependency vulnerability audit for both stacks
 	cd $(BACKEND) && python -m pip_audit -r requirements.txt
 	cd $(FRONTEND) && npm audit --audit-level=high
+
+.PHONY: lock
+lock: ## Regenerate backend/requirements.lock + requirements-dev.lock from the manifests
+	cd $(BACKEND) && python scripts/generate_lockfile.py && python scripts/generate_lockfile.py --dev
 
 .PHONY: verify
 verify: lint typecheck test build ## Everything CI enforces, in one command

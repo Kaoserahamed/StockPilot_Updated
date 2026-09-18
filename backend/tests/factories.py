@@ -24,7 +24,17 @@ API = "/api/v1"
 # and can be overridden with TEST_DEFAULT_PASSWORD for reproducible runs.
 # SECURITY: No hardcoded password - either reads from env var or generates
 # a cryptographically secure random token via secrets.token_urlsafe(16).
-DEFAULT_PASSWORD: str = os.getenv("TEST_DEFAULT_PASSWORD") or secrets.token_urlsafe(16)
+# It always satisfies the production password policy (>= 8 chars, a letter
+# and a digit) so registration succeeds in every test.
+def _default_password() -> str:
+    env = os.getenv("TEST_DEFAULT_PASSWORD")
+    if env:
+        return env
+    token = secrets.token_urlsafe(16)
+    return f"{token}a1"
+
+
+DEFAULT_PASSWORD: str = _default_password()
 
 
 # --------------------------------------------------------------------------- #

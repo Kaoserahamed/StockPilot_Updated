@@ -24,6 +24,7 @@ make verify             # lint, types, tests and build - the exact CI commands
 
 # --- Backend suite (in-memory SQLite; no database, no network, no API key) ---
 pip install -r requirements.txt -r requirements-dev.txt   # root -> backend manifests
+pip install -r backend/requirements-dev.lock              # ... or the fully pinned closure
 pytest                                                    # backend/tests, from the root
 pytest --cov                                              # ... and enforce the 80% floor
 
@@ -111,15 +112,51 @@ StockPilot_Updated/
 |   |-- lib/            #   api client, auth context, sanitisation, store
 |   |-- services/       #   typed API service functions per domain
 |   `-- types/          #   shared TypeScript domain types
-|-- docs/               # API reference, architecture, runbook, testing, releasing
+|-- docs/               # documentation, grouped by audience (see "Documentation")
+|   |-- architecture/   #   system design, data flow, ADRs
+|   |-- development/    #   setup, git workflow, testing
+|   |-- api/            #   authentication guide + generated openapi.yaml
+|   |-- database/       #   schema, migrations
+|   |-- deployment/     #   production, CI/CD, rollback
+|   |-- operations/     #   runbook, monitoring, disaster recovery
+|   `-- security/       #   threat model, secrets management
 |-- scripts/            # backup / restore / maintenance (fail-fast, no default secrets)
 |-- .github/workflows/  # CI: lint, types, tests, coverage, audits, secret scan,
 |                       #     container builds and tag-triggered releases
 `-- IMPLEMENTATION_PLAN.md
 ```
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the layered design and the multi-tenancy
-model, and [`docs/API.md`](docs/API.md) for the endpoint reference.
+---
+
+## Documentation
+
+The full set lives under [`docs/`](docs/), organised by who needs it:
+
+| Document | Audience | Contents |
+|----------|----------|----------|
+| [`architecture/system-architecture.md`](docs/architecture/system-architecture.md) | engineers | layers, tenancy, components, observability |
+| [`architecture/data-flow.md`](docs/architecture/data-flow.md) | engineers | request lifecycle, stock write paths, AI and frontend flow |
+| [`architecture/decisions/`](docs/architecture/decisions/) | engineers | ADRs 0001-0005 (why the system looks like this) |
+| [`development/setup.md`](docs/development/setup.md) | new contributors | prerequisites, install, configure, run, troubleshooting |
+| [`development/git-workflow.md`](docs/development/git-workflow.md) | contributors | branches, commits, PRs, dependency PRs, releases |
+| [`development/testing.md`](docs/development/testing.md) | contributors | suites, coverage policy, how to read failures |
+| [`api/authentication.md`](docs/api/authentication.md) | integrators | tokens, tenancy, roles, errors, endpoint catalogue |
+| [`api/openapi.yaml`](docs/api/openapi.yaml) | integrators | generated OpenAPI 3.1 contract (80 paths) |
+| [`database/schema.md`](docs/database/schema.md) | engineers | table-by-table reference, constraints, indexes |
+| [`database/migrations.md`](docs/database/migrations.md) | engineers / ops | authoring, applying and verifying Alembic revisions |
+| [`deployment/production.md`](docs/deployment/production.md) | ops | environments, images, reverse proxy, secrets |
+| [`deployment/ci-cd.md`](docs/deployment/ci-cd.md) | ops / contributors | pipeline jobs, gates, tag -> GHCR -> GitHub Release |
+| [`deployment/rollback.md`](docs/deployment/rollback.md) | ops | when and how to roll an image back (schema is forward-only) |
+| [`operations/runbook.md`](docs/operations/runbook.md) | ops | day-to-day commands, health probes, incidents |
+| [`operations/monitoring.md`](docs/operations/monitoring.md) | ops | health/error/log signals and what to alert on |
+| [`operations/disaster-recovery.md`](docs/operations/disaster-recovery.md) | ops | backups, restore, drills, scenario playbook |
+| [`security/threat-model.md`](docs/security/threat-model.md) | engineers / security | assets, trust boundaries, mitigations, known gaps |
+| [`security/secrets-management.md`](docs/security/secrets-management.md) | ops / security | secret inventory, rotation, leak response |
+| [`ProjectDetails.md`](docs/ProjectDetails.md) | product / QA | functional requirements (FR-1 … FR-37) |
+
+Root-level policies stay at the repository root: [`CONTRIBUTING.md`](CONTRIBUTING.md),
+[`SECURITY.md`](SECURITY.md) and [`CHANGELOG.md`](CHANGELOG.md).
+
 ---
 
 ## What the product does
@@ -137,7 +174,8 @@ model, and [`docs/API.md`](docs/API.md) for the endpoint reference.
 | Reporting | Dashboard metrics, sales/inventory/expense/profit reports, CSV + Excel export |
 | AI | Assistant chat, business insights, demand forecasting, reorder recommendations, anomalies |
 
-The full functional specification lives in [`docs/ProjectDetails.md`](docs/ProjectDetails.md).
+The full functional specification lives in [`docs/ProjectDetails.md`](docs/ProjectDetails.md);
+the technical documentation index is the [Documentation](#documentation) section above.
 
 ---
 
@@ -188,14 +226,15 @@ npm run build
 pip-audit -r requirements.txt
 npm audit --audit-level=high
 python backend/scripts/scan_secrets.py     # fails on committed credentials
-pip install -r backend/requirements.lock.txt   # proves the lockfile installs
+pip install -r backend/requirements.lock       # proves the lockfile installs
+pip install -r backend/requirements-dev.lock   # ... and the pinned test toolchain
 docker build .                             # every Dockerfile is built in CI
 ```
 
 | Gate | Floor |
 |------|-------|
 | Backend test coverage | 80% of `backend/app` (`fail_under` in `pyproject.toml` **and** `--cov-fail-under` in CI) |
-| Frontend coverage | Vitest thresholds over `lib/`, `hooks/`, `services/`, `components/` |
+| Frontend coverage | Vitest thresholds (lines/functions/branches/statements each >= 70%) over `lib/`, `hooks/`, `services/`, `components/` |
 | Backend suite | must pass on in-memory SQLite, no external services |
 | Dependency audit | `pip-audit` and `npm audit --audit-level=high` must be clean |
 | Secret scan | `backend/scripts/scan_secrets.py` must report nothing |
@@ -204,7 +243,9 @@ Pre-commit hooks mirror the lint and format rules:
 `pip install pre-commit && pre-commit install`.
 
 Version tags publish the API image to GHCR and open a GitHub Release - see
-[`docs/RELEASING.md`](docs/RELEASING.md). Deploying stays a manual step.
+[`docs/deployment/ci-cd.md`](docs/deployment/ci-cd.md). Deploying stays a manual
+step: [`docs/deployment/production.md`](docs/deployment/production.md), with
+[`docs/deployment/rollback.md`](docs/deployment/rollback.md) for a bad release.
 
 ---
 

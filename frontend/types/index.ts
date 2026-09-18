@@ -4,7 +4,7 @@
  * These mirror the Pydantic contracts in `backend/app/schemas/schemas.py` and
  * are the single source of truth for `services/` (the only fetch layer) and
  * for page components. No runtime code lives in this directory - see
- * `docs/ARCHITECTURE.md`.
+ * `docs/architecture/system-architecture.md`.
  */
 
 /* ------------------------------------------------------------------ identity */

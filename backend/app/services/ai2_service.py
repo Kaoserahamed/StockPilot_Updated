@@ -96,7 +96,7 @@ def forecast_demand(
 
     start, _ = f.resolve_range("month")
     net_qty = SaleItem.quantity - func.coalesce(SaleItem.returned_qty, 0)
-    agg = dict(
+    raw_rows = (
         db.query(
             SaleItem.product_id,
             func.sum(case((net_qty > 0, net_qty), else_=0)),
@@ -110,6 +110,7 @@ def forecast_demand(
         .group_by(SaleItem.product_id)
         .all()
     )
+    agg: dict[int, int] = {int(pid): int(qty or 0) for pid, qty in raw_rows}
     q = db.query(Product.id, Product.name, Product.quantity_on_hand).filter(
         Product.business_id == business_id
     )

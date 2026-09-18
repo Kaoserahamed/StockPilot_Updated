@@ -20,10 +20,10 @@ def sales_in_range(db: Session, business_id: int, start, end):
     return q.order_by(Sale.id.desc()).limit(MAX_SALE_IDS).all()
 
 
-def revenue_summary(db: Session, business_id: int, start, end) -> dict:
+def revenue_summary(db: Session, business_id: int, start: object, end: object) -> dict:
     """FR-16: gross/net revenue + order count for a period (single SQL query)."""
     hit = _memo_get(db, "revenue_summary", business_id, start, end)
-    if hit is not None:
+    if isinstance(hit, dict):
         return hit
     row = (
         db.query(
@@ -43,11 +43,12 @@ def revenue_summary(db: Session, business_id: int, start, end) -> dict:
         )
         .scalar()
     )
-    gross = round(float(row[1] or 0), 2)
-    collected = round(float(row[2] or 0), 2)
+    gross = round(float(row[1] or 0) if row is not None else 0.0, 2)
+    collected = round(float(row[2] or 0) if row is not None else 0.0, 2)
     exp_total = round(float(expense or 0), 2)
+    orders = int(row[0] or 0) if row is not None else 0
     result = {
-        "orders": int(row[0] or 0),
+        "orders": orders,
         "revenue": gross,
         "collected": collected,
         "expenses": exp_total,

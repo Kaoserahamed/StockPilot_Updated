@@ -9,7 +9,7 @@
 #   * `backend/Dockerfile` is the compose-oriented image (context = `backend/`)
 #     used by docker-compose.dev.yml / docker-compose.prod.yml.
 #   * this root image installs from the *committed lockfile*
-#     (`backend/requirements.lock.txt`), so the bits are reproducible from the
+#     (`backend/requirements.lock`), so the bits are reproducible from the
 #     repository alone, and it is the image the tag-triggered release job in
 #     .github/workflows/ci.yml builds and publishes to GHCR.
 #
@@ -25,7 +25,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt backend/requirements.lock.txt ./
+COPY backend/requirements.txt backend/requirements.lock ./
 
 RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \

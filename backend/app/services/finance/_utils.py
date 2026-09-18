@@ -1,6 +1,7 @@
 """Utility functions for finance services: date parsing, range resolution, memoization."""
 
 from datetime import datetime, timedelta
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -14,24 +15,35 @@ MAX_SALE_IDS = 20000
 MAX_TREND_BUCKETS = 1500
 
 
-def _memo_key(business_id: int, start, end) -> tuple:
+def _memo_key(business_id: int, start: object, end: object) -> tuple:
     return (business_id, str(start), str(end))
 
 
-def _memo_get(db: Session, fname: str, business_id: int, start, end):
+def _memo_get(
+    db: Session, fname: str, business_id: int, start: object, end: object
+) -> dict[str, Any] | None:
     """Per-session memoization: heavy aggregates compute once per request."""
-    cache = getattr(db, "_fin_cache", None)
+    cache: dict[tuple[str, tuple], dict[str, Any]] | None = getattr(db, "_fin_cache", None)
     if cache is None:
         cache = {}
-        db._fin_cache = cache
-    return cache.get((fname, _memo_key(business_id, start, end)))
+        db._fin_cache = cache  # type: ignore[attr-defined]
+    hit = cache.get((fname, _memo_key(business_id, start, end)))
+    return dict(hit) if isinstance(hit, dict) else None
 
 
-def _memo_set(db: Session, fname: str, business_id: int, start, end, value):
-    cache = getattr(db, "_fin_cache", None)
+def _memo_set(
+    db: Session,
+    fname: str,
+    business_id: int,
+    start: object,
+    end: object,
+    value: dict[str, Any],
+) -> dict[str, Any]:
+    cache: dict[tuple[str, tuple], dict[str, Any]] | None = getattr(db, "_fin_cache", None)
     if cache is None:
         cache = {}
-        db._fin_cache = cache
+        db._fin_cache = cache  # type: ignore[attr-defined]
+    assert cache is not None
     cache[(fname, _memo_key(business_id, start, end))] = value
     return value
 

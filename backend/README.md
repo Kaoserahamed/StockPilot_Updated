@@ -17,11 +17,19 @@ uvicorn app.main:app --reload        # http://localhost:8000/docs
 ## Test
 
 ```bash
-pytest --cov=app --cov-report=term-missing
+# The exact, fully pinned environment CI installs for the suite:
+pip install -r requirements-dev.lock
+pytest --cov=app --cov-report=term-missing --cov-fail-under=80
 ```
 
+`requirements-dev.txt` (direct pins) works too; `requirements-dev.lock` also pins
+the transitive closure.
+
 See [`tests/README.md`](tests/README.md) for fixtures, factories and the
-coverage policy.
+coverage policy, and
+[`../docs/development/testing.md`](../docs/development/testing.md) for the
+repository-wide testing guide. Architecture and data flow live under
+[`../docs/architecture/`](../docs/architecture/).
 
 ## Layout
 

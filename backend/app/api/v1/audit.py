@@ -2,7 +2,8 @@
 
 Extracted from ``app/main.py`` so the HTTP surface of the application is
 declared entirely under ``app/api/`` - ``main.py`` is then limited to wiring
-(middleware, routers, lifespan) as described in ``docs/ARCHITECTURE.md``.
+(middleware, routers, lifespan) as described in
+``docs/architecture/system-architecture.md``.
 """
 
 from datetime import datetime

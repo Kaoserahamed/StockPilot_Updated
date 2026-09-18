@@ -9,7 +9,9 @@ from app.models.transactions import Purchase
 from app.services.finance._utils import REVENUE_STATUSES, _sale_range_filters
 
 
-def top_products(db: Session, business_id: int, start, end, limit: int = 10) -> list[dict]:
+def top_products(
+    db: Session, business_id: int, start: object, end: object, limit: int = 10
+) -> list[dict]:
     """FR-20: top products by quantity sold with revenue and profit."""
     net_qty = SaleItem.quantity - SaleItem.returned_qty
     # Average purchase cost per product (for the profit estimate); {} when
@@ -34,17 +36,17 @@ def top_products(db: Session, business_id: int, start, end, limit: int = 10) -> 
         .group_by(SaleItem.product_id)
         .all()
     )
-    agg = []
+    agg: list[tuple[int, int, float, float]] = []
     for pid, qty, rev in rows:
         q = int(qty or 0)
         r = float(rev or 0)
         agg.append((pid, q, r, r - q * avg.get(pid, 0.0)))
     agg.sort(key=lambda t: t[1], reverse=True)
     top = agg[: max(1, min(limit, 100))]
-    names = {}
+    names: dict[int, str] = {}
     if top:
         ids = [t[0] for t in top]
-        names = dict(db.query(Product.id, Product.name).filter(Product.id.in_(ids)).all())
+        names = dict(db.query(Product.id, Product.name).filter(Product.id.in_(ids)).all())  # type: ignore[arg-type]
     return [
         {
             "product_id": pid,
@@ -57,7 +59,9 @@ def top_products(db: Session, business_id: int, start, end, limit: int = 10) -> 
     ]
 
 
-def customer_stats(db: Session, business_id: int, start, end, limit: int = 10) -> list[dict]:
+def customer_stats(
+    db: Session, business_id: int, start: object, end: object, limit: int = 10
+) -> list[dict]:
     """FR-21: net spend + order count per customer (SQL GROUP BY)."""
     from app.models.party import Customer
 
@@ -72,10 +76,10 @@ def customer_stats(db: Session, business_id: int, start, end, limit: int = 10) -
         .all()
     )
     rows = sorted(rows, key=lambda r: float(r[2] or 0), reverse=True)[: max(1, min(limit, 100))]
-    names = {}
+    names: dict[int, str] = {}
     if rows:
         ids = [r[0] for r in rows]
-        names = dict(db.query(Customer.id, Customer.name).filter(Customer.id.in_(ids)).all())
+        names = dict(db.query(Customer.id, Customer.name).filter(Customer.id.in_(ids)).all())  # type: ignore[arg-type]
     return [
         {
             "customer_id": cid,
@@ -87,7 +91,7 @@ def customer_stats(db: Session, business_id: int, start, end, limit: int = 10) -
     ]
 
 
-def supplier_stats(db: Session, business_id: int, start, end) -> list[dict]:
+def supplier_stats(db: Session, business_id: int, start: object, end: object) -> list[dict]:
     """FR-22: purchase value + outstanding per supplier (SQL GROUP BY)."""
     from app.models.party import Supplier
 

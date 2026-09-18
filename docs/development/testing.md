@@ -3,6 +3,10 @@
 How to run the suites, what they cover, and how to read the output. All
 suites are hermetic: **no external database, network, or API key required.**
 
+Setup that gets a machine to this point is in [`setup.md`](setup.md); the CI
+jobs that run these commands are in
+[`../deployment/ci-cd.md`](../deployment/ci-cd.md).
+
 ## Backend (`backend/`, pytest)
 
 ```bash
@@ -52,7 +56,8 @@ Coverage is **enforced**, not just reported:
 - The repository-root `pyproject.toml` carries the same floor, so
   `pytest --cov` from the root is gated too.
 - The frontend suite runs with `npm run test:coverage`; `frontend/vitest.config.ts`
-  holds the thresholds.
+  holds the thresholds (lines, functions, branches and statements must each stay
+  at or above 70%).
 - CI uploads `coverage.xml` as an artifact for every run.
 
 Frontend coverage scope: `coverage.include` measures the unit-tested modules

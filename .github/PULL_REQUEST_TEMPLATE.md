@@ -27,10 +27,12 @@
 ruff check app tests
 ruff format --check app tests
 mypy app
-pytest --cov=app --cov-report=term-missing
+pytest --cov=app --cov-report=term-missing --cov-fail-under=80
 
 npm run lint
 npm run typecheck
+npm run test:coverage
+npm run format:check
 npm run build
 ```
 

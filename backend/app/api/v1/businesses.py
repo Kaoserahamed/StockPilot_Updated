@@ -54,6 +54,8 @@ def update_my_business(
     if ctx.role != "Owner":
         raise HTTPException(status_code=403, detail="Only Owner can update business")
     biz = db.query(Business).filter(Business.id == ctx.business_id).first()
+    if biz is None:
+        raise HTTPException(status_code=404, detail="Business not found")
     for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(biz, k, v)
     db.commit()
@@ -71,6 +73,8 @@ def upload_logo(
     if ctx.role != "Owner":
         raise HTTPException(status_code=403, detail="Only Owner can update business")
     biz = db.query(Business).filter(Business.id == ctx.business_id).first()
+    if biz is None:
+        raise HTTPException(status_code=404, detail="Business not found")
     dest_dir = os.path.join(settings.upload_dir, "logos")
     os.makedirs(dest_dir, exist_ok=True)
     ext = os.path.splitext(file.filename or "")[1][:10]

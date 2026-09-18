@@ -1,9 +1,14 @@
 """Request timeout configuration for the application."""
 
-import asyncio
+from __future__ import annotations
 
-from fastapi import FastAPI
+import asyncio
+from typing import TYPE_CHECKING, Any
+
 from fastapi.responses import JSONResponse
+
+if TYPE_CHECKING:
+    from fastapi import FastAPI
 
 # Timeout in seconds
 DEFAULT_TIMEOUT = 30
@@ -22,12 +27,12 @@ TIMEOUT_PATHS = {
 
 
 class TimeoutMiddleware:
-    """Apply per-path request timeouts."""
+    """Apply per-path request timeouts (pure-ASGI middleware)."""
 
-    def __init__(self, app: FastAPI):
+    def __init__(self, app: Any):
         self.app = app
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
@@ -54,4 +59,4 @@ class TimeoutMiddleware:
 
 def setup_timeouts(app: FastAPI) -> None:
     """Wrap the app with timeout middleware."""
-    app.add_middleware(TimeoutMiddleware)
+    app.add_middleware(TimeoutMiddleware)  # type: ignore[arg-type]

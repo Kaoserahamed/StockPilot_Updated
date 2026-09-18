@@ -74,7 +74,21 @@ def test_register_rejects_short_password(client: TestClient) -> None:
         },
     )
     assert resp.status_code == 422
-    assert "6 characters" in resp.text
+    assert "8 characters" in resp.text
+
+
+def test_register_rejects_password_without_a_digit(client: TestClient) -> None:
+    resp = client.post(
+        REGISTER,
+        json={
+            "owner_name": "Owner",
+            "email": "nodigit@test.com",
+            "password": "password-only",
+            "business_name": "Shop",
+        },
+    )
+    assert resp.status_code == 422
+    assert "letter and one digit" in resp.text
 
 
 def test_register_accepts_phone_only_owner(client: TestClient) -> None:
@@ -113,7 +127,9 @@ def test_login_rejects_wrong_password(client: TestClient) -> None:
 
 
 def test_login_rejects_unknown_user(client: TestClient) -> None:
-    resp = client.post(LOGIN, json={"username": "ghost@test.com", "password": "whatever1"})
+    resp = client.post(
+        LOGIN, json={"username": "ghost@test.com", "password": factories.DEFAULT_PASSWORD}
+    )
     assert resp.status_code == 401
 
 
@@ -245,6 +261,7 @@ def test_reset_token_is_single_use(client: TestClient) -> None:
 
 def test_reset_rejects_an_unknown_token(client: TestClient) -> None:
     resp = client.post(
-        "/api/v1/auth/reset-password", json={"token": "made-up", "new_password": "whatever1"}
+        "/api/v1/auth/reset-password",
+        json={"token": "made-up", "new_password": factories.DEFAULT_PASSWORD},
     )
     assert resp.status_code == 400

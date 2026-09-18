@@ -78,7 +78,7 @@ def test_manager_cannot_perform_owner_only_actions(client: TestClient) -> None:
             json={
                 "name": "X",
                 "email": "x-rbac3@test.com",
-                "password": "secret123",
+                "password": factories.DEFAULT_PASSWORD,
                 "role": "Cashier",
             },
             headers=manager,

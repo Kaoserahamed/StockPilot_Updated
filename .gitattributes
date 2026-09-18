@@ -34,4 +34,5 @@
 
 # Keep lockfiles out of language stats / treat as generated
 package-lock.json  linguist-generated=true
-requirements.lock.txt linguist-generated=true
+requirements.lock linguist-generated=true
+requirements-dev.lock linguist-generated=true

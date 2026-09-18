@@ -21,10 +21,12 @@ Design
 * Values that announce themselves as placeholders are ignored: ``changeme``,
   ``replace-with-...``, ``ci-only-...``, ``test-...``, ``${DB_PASSWORD}``
   expansions, ``<...>``, empty strings and the like.
-* A matched value must still look like a secret (a digit, or mixed case, plus
-  no whitespace) which keeps storage keys such as ``stockpilot_token`` out of
-  the report. The trade-off is deliberate: an all-lowercase, digit-free
-  credential is not detected, and neither is a short one.
+* A matched value must still look like a secret: at least 8 characters, a digit
+  or mixed case, and no whitespace. That keeps storage keys such as
+  ``stockpilot_token`` out of the report. The trade-off is deliberate: an
+  all-lowercase, digit-free credential is not detected. The 8-character floor
+  matches the production password policy, so a shorter value could never be a
+  usable credential anyway.
 * A line containing ``pragma: allowlist secret`` is skipped, which is how the
   negative controls in ``backend/tests/test_secret_scan.py`` stay scannable.
 * Files with a UTF-16 BOM are decoded rather than skipped, so a credential
@@ -139,7 +141,10 @@ _ENV_ASSIGNMENT = re.compile(
     r"(?i)^\s*(?:export\s+)?(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*[:=]\s*(?P<value>[^\s#]+)\s*$"
 )
 _SENSITIVE_NAME = re.compile(r"(?i)(password|passwd|pwd|secret|token|api[_-]?key)")
-_SECRET_SHAPED_VALUE = re.compile(r"^[A-Za-z0-9_\-./+=:@!]{12,}$")
+#: Minimum length of a value that could be a real credential. Aligned with the
+#: production password-policy floor (8 characters) so a short literal such as
+#: ``secret123`` cannot slip through unreported.
+_SECRET_SHAPED_VALUE = re.compile(r"^[A-Za-z0-9_\-./+=:@!]{8,}$")
 
 TOKEN_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("private-key-block", _PRIVATE_KEY_BLOCK),

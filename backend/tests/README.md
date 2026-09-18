@@ -4,8 +4,8 @@ Canonical command (also what CI runs):
 
 ```bash
 cd backend
-pip install -r requirements.txt -r requirements-dev.txt
-pytest --cov=app --cov-report=term-missing
+pip install -r requirements.txt -r requirements-dev.txt   # or: -r requirements-dev.lock
+pytest --cov=app --cov-report=term-missing --cov-fail-under=80
 ```
 
 - **Isolation:** `conftest.py` builds a fresh in-memory SQLite database per

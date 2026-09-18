@@ -54,4 +54,54 @@ describe('useFormValidation', () => {
     expect(result.current.errors.name).toBeTruthy();
     expect(result.current.errors.other).toBeUndefined();
   });
+
+  it('builds default messages when a rule carries no message of its own', () => {
+    const { result } = renderHook(() =>
+      useFormValidation({
+        name: { required: true },
+        code: { minLength: 4 },
+        tag: { maxLength: 2 },
+        email: { pattern: /@/ },
+      })
+    );
+
+    let valid = true;
+    act(() => {
+      valid = result.current.validate({ name: '', code: 'ab', tag: 'abc', email: 'nope' });
+    });
+
+    expect(valid).toBe(false);
+    expect(result.current.errors.name).toBe('name is required');
+    expect(result.current.errors.code).toBe('code must be at least 4 characters');
+    expect(result.current.errors.tag).toBe('tag must be at most 2 characters');
+    expect(result.current.errors.email).toBe('email is invalid');
+  });
+
+  it('ignores a field without a rule and clears one error at a time', () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ name: { required: true }, other: { required: true } })
+    );
+
+    act(() => {
+      expect(result.current.validateField('unknown', 'anything')).toBe('');
+    });
+
+    act(() => {
+      result.current.validateField('name', '');
+      result.current.validateField('other', '');
+    });
+    expect(Object.keys(result.current.errors)).toHaveLength(2);
+
+    // A now-valid value removes only its own error.
+    act(() => {
+      result.current.validateField('name', 'Maya');
+    });
+    expect(result.current.errors.name).toBeUndefined();
+    expect(result.current.errors.other).toBeTruthy();
+
+    act(() => {
+      result.current.clearFieldError('other');
+    });
+    expect(result.current.errors).toEqual({});
+  });
 });

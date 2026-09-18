@@ -1,0 +1,8 @@
+# StockPilot code owners — reviews are requested automatically on PRs.
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @Kaoserahamed
+/backend/ @Kaoserahamed
+/frontend/ @Kaoserahamed
+/.github/ @Kaoserahamed
+/docs/ @Kaoserahamed

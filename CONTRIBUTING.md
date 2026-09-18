@@ -19,11 +19,14 @@ how work is organised, and the rules a change must satisfy before it is merged.
 5. **Keep the tracking document current.** Update `IMPLEMENTATION_PLAN.md` when you complete
    a milestone item.
 6. **Releases are cut from `main` only**, with a green CI and a dated `CHANGELOG.md` entry.
-   The tag-triggered pipeline is documented in [`docs/RELEASING.md`](docs/RELEASING.md).
+   The tag-triggered pipeline is documented in [`docs/deployment/ci-cd.md`](docs/deployment/ci-cd.md).
 
 ---
 
 ## 2. Local development setup
+
+The long form (prerequisites, Docker, dev container, troubleshooting) is in
+[`docs/development/setup.md`](docs/development/setup.md).
 
 ### Backend
 
@@ -58,6 +61,9 @@ make test        # pytest + vitest
 ---
 
 ## 3. Running the checks locally (same commands CI runs)
+
+What each suite covers, and how to read a failure, is in
+[`docs/development/testing.md`](docs/development/testing.md).
 
 ```bash
 # Everything at once, from the repository root:
@@ -123,7 +129,7 @@ docs: document the fresh-clone test command
 - [ ] `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run build` pass
 - [ ] Backend coverage stays at or above 80%; frontend coverage respects its thresholds
 - [ ] `python backend/scripts/scan_secrets.py` reports nothing
-- [ ] `backend/requirements.lock.txt` regenerated when `requirements.txt` changed
+- [ ] `backend/requirements.lock` / `requirements-dev.lock` regenerated when a manifest changed
 - [ ] New behaviour has a test that fails without the change
 - [ ] `CHANGELOG.md` updated under `Unreleased`
 - [ ] `IMPLEMENTATION_PLAN.md` checkboxes updated
