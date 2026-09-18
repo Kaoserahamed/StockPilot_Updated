@@ -16,7 +16,7 @@ import { AuthProvider, useAuth } from '../lib/auth';
 import { getToken, setToken } from '../lib/session';
 import * as authService from '../services/auth';
 import type { AuthUser } from '../types';
-import { TEST_EMAIL, TEST_PASSWORD } from './helpers';
+import { TEST_EMAIL, MOCK_AUTH_PASSWORD } from './helpers';
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
@@ -42,13 +42,13 @@ function Probe() {
     <div>
       <span data-testid="user">{user?.name ?? 'anonymous'}</span>
       <span data-testid="loading">{String(loading)}</span>
-      <button onClick={() => void login(TEST_EMAIL, TEST_PASSWORD)}>login</button>
+      <button onClick={() => void login(TEST_EMAIL, MOCK_AUTH_PASSWORD)}>login</button>
       <button
         onClick={() =>
           void register({
             owner_name: 'Maya',
             business_name: 'Shop',
-            password: TEST_PASSWORD,
+            password: MOCK_AUTH_PASSWORD,
             email: TEST_EMAIL,
           })
         }
@@ -130,7 +130,7 @@ describe('AuthProvider', () => {
 
     await click('login');
 
-    expect(authService.login).toHaveBeenCalledWith(TEST_EMAIL, TEST_PASSWORD);
+    expect(authService.login).toHaveBeenCalledWith(TEST_EMAIL, MOCK_AUTH_PASSWORD);
     expect(getToken()).toBe('fresh-token');
     expect(screen.getByTestId('user').textContent).toBe('Maya');
     expect(push).toHaveBeenCalledWith('/dashboard');
@@ -152,7 +152,7 @@ describe('AuthProvider', () => {
     expect(authService.register).toHaveBeenCalledWith(
       expect.objectContaining({ owner_name: 'Maya', business_name: 'Shop' })
     );
-    expect(authService.login).toHaveBeenCalledWith(TEST_EMAIL, TEST_PASSWORD);
+    expect(authService.login).toHaveBeenCalledWith(TEST_EMAIL, MOCK_AUTH_PASSWORD);
     expect(push).toHaveBeenCalledWith('/dashboard');
   });
 

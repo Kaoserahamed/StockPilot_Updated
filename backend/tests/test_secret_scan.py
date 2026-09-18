@@ -130,6 +130,25 @@ def test_identifiers_are_not_reported(line: str) -> None:
     assert scan_secrets.scan_text(line) == [], f"false positive on an identifier: {line!r}"
 
 
+@pytest.mark.parametrize(
+    "line, expected_value",
+    [
+        ('password = "Abcd12X"', "Abcd12X"),  # pragma: allowlist secret
+        ("DB_PASSWORD=Secur34", "Secur34"),  # pragma: allowlist secret
+        ('api_key = "abc123X"', "abc123X"),  # pragma: allowlist secret
+    ],
+)
+def test_sub_policy_length_values_are_not_reported(line: str, expected_value: str) -> None:
+    # Documents the length floor in ``_SECRET_SHAPED_VALUE``: a 7-char value
+    # still has a digit and mixed case, but is below the 8-char production
+    # password-policy floor, so it cannot be a usable credential and is not
+    # flagged. This is the deliberate trade-off called out in the scanner
+    # docstring.
+    assert len(expected_value) < 8
+    assert not scan_secrets.looks_like_secret(expected_value)
+    assert scan_secrets.scan_text(line) == [], f"false positive below length floor: {line!r}"
+
+
 def test_allowlist_pragma_suppresses_a_finding() -> None:
     line = 'password = "Sup3rS3cretValue"  # pragma: allowlist secret'
     assert scan_secrets.scan_text(line) == []

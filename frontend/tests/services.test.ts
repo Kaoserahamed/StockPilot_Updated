@@ -26,7 +26,7 @@ import * as parties from '../services/parties';
 import * as reports from '../services/reports';
 import * as system from '../services/system';
 import * as trading from '../services/trading';
-import { TEST_EMAIL, TEST_PASSWORD } from './helpers';
+import { TEST_EMAIL, MOCK_AUTH_PASSWORD } from './helpers';
 
 /** Resolve every verb on the versioned client with a canned body. */
 function stubApi() {
@@ -45,17 +45,21 @@ describe('auth service', () => {
   it('targets the identity endpoints with the documented payloads', async () => {
     const { get, post } = stubApi();
 
-    await auth.register({ owner_name: 'Owner', business_name: 'Shop', password: TEST_PASSWORD });
+    await auth.register({
+      owner_name: 'Owner',
+      business_name: 'Shop',
+      password: MOCK_AUTH_PASSWORD,
+    });
     expect(post).toHaveBeenCalledWith('/auth/register', {
       owner_name: 'Owner',
       business_name: 'Shop',
-      password: TEST_PASSWORD,
+      password: MOCK_AUTH_PASSWORD,
     });
 
-    await auth.login(TEST_EMAIL, TEST_PASSWORD);
+    await auth.login(TEST_EMAIL, MOCK_AUTH_PASSWORD);
     expect(post).toHaveBeenCalledWith('/auth/login', {
       username: TEST_EMAIL,
-      password: TEST_PASSWORD,
+      password: MOCK_AUTH_PASSWORD,
     });
 
     await auth.logout();
@@ -67,10 +71,10 @@ describe('auth service', () => {
     await auth.forgotPassword(TEST_EMAIL);
     expect(post).toHaveBeenCalledWith('/auth/forgot-password', { username: TEST_EMAIL });
 
-    await auth.resetPassword('reset-token', TEST_PASSWORD);
+    await auth.resetPassword('reset-token', MOCK_AUTH_PASSWORD);
     expect(post).toHaveBeenCalledWith('/auth/reset-password', {
       token: 'reset-token',
-      new_password: TEST_PASSWORD,
+      new_password: MOCK_AUTH_PASSWORD,
     });
 
     await auth.me();
@@ -79,7 +83,7 @@ describe('auth service', () => {
 
   it('returns the unwrapped response body', async () => {
     vi.spyOn(api, 'post').mockResolvedValue({ data: { access_token: 'a', refresh_token: 'r' } });
-    await expect(auth.login(TEST_EMAIL, TEST_PASSWORD)).resolves.toEqual({
+    await expect(auth.login(TEST_EMAIL, MOCK_AUTH_PASSWORD)).resolves.toEqual({
       access_token: 'a',
       refresh_token: 'r',
     });
@@ -105,7 +109,7 @@ describe('admin service', () => {
 
     await admin.listEmployees();
     expect(get).toHaveBeenCalledWith('/employees');
-    await admin.createEmployee({ name: 'Maya', role: 'Manager', password: TEST_PASSWORD });
+    await admin.createEmployee({ name: 'Maya', role: 'Manager', password: MOCK_AUTH_PASSWORD });
     expect(post).toHaveBeenCalledWith('/employees', expect.anything());
     await admin.updateEmployeeRole(3, 'Cashier');
     expect(patch).toHaveBeenCalledWith('/employees/3/role', { role: 'Cashier' });
@@ -113,9 +117,9 @@ describe('admin service', () => {
     expect(post).toHaveBeenCalledWith('/employees/3/deactivate');
     await admin.activateEmployee(3);
     expect(post).toHaveBeenCalledWith('/employees/3/activate');
-    await admin.resetEmployeePassword(3, TEST_PASSWORD);
+    await admin.resetEmployeePassword(3, MOCK_AUTH_PASSWORD);
     expect(post).toHaveBeenCalledWith('/employees/3/reset-password', {
-      new_password: TEST_PASSWORD,
+      new_password: MOCK_AUTH_PASSWORD,
     });
     await admin.removeEmployee(3);
     expect(del).toHaveBeenCalledWith('/employees/3');

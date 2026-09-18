@@ -19,6 +19,7 @@ from fastapi.testclient import TestClient
 
 API = "/api/v1"
 
+
 # Test password is sourced from the environment so no literal credential is
 # committed. It is generated once at import time (and stable for the process)
 # and can be overridden with TEST_DEFAULT_PASSWORD for reproducible runs.
