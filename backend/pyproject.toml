@@ -6,6 +6,51 @@ requires-python = ">=3.11"
 readme = "README.md"
 
 # ---------------------------------------------------------------------------
+# Runtime dependencies - the single source of truth for `uv lock`.
+#
+# These mirror backend/requirements.txt (the same exact pins). Both artifacts
+# are committed and both are verified:
+#   * requirements.txt  -> what pip, Docker and CI install
+#   * requirements.lock -> the pip-resolved transitive closure
+#   * uv.lock           -> the uv-resolved closure (backend/uv.lock)
+# `backend/tests/test_dependency_manifests.py` fails the suite if this table
+# and requirements.txt ever disagree on a direct pin.
+# ---------------------------------------------------------------------------
+dependencies = [
+    "fastapi==0.141.1",
+    "uvicorn[standard]==0.35.0",
+    "SQLAlchemy==2.0.54",
+    "alembic==1.16.5",
+    "psycopg2-binary==2.9.12",
+    "PyMySQL==1.1.2",
+    "pydantic==2.11.7",
+    "pydantic-settings==2.15.0",
+    "email-validator==2.2.0",
+    "PyJWT==2.13.0",
+    "bcrypt==4.0.1",
+    "python-multipart==0.0.32",
+    "reportlab==5.0.1",
+    "openpyxl==3.1.5",
+    "google-generativeai==0.8.6",
+    "PyYAML==6.0.3",
+    "python-json-logger==4.2.0",
+    "slowapi==0.1.10",
+]
+
+# ---------------------------------------------------------------------------
+# uv - lockfile configuration
+#
+# The backend is an application, not a distributable library, so uv is told not
+# to build or install the project itself; it only resolves and locks the
+# dependency closure into uv.lock:
+#
+#     cd backend && uv lock            # regenerate uv.lock
+#     cd backend && uv lock --check    # fail if uv.lock is stale (CI)
+# ---------------------------------------------------------------------------
+[tool.uv]
+package = false
+
+# ---------------------------------------------------------------------------
 # Ruff: linting + formatting (single tool replaces black, isort and flake8)
 # ---------------------------------------------------------------------------
 [tool.ruff]
@@ -75,7 +120,7 @@ omit = [
 ]
 
 [tool.coverage.report]
-fail_under = 80
+fail_under = 90
 show_missing = true
 skip_covered = false
 exclude_lines = [

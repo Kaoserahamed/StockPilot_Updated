@@ -82,7 +82,6 @@ DEV_HEADER = """\
 """
 
 
-
 def resolve_pins(manifests: Sequence[Path]) -> list[str]:
     """Ask pip to resolve ``manifests`` and return sorted ``name==version`` pins."""
     with tempfile.TemporaryDirectory() as tmp_dir:

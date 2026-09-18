@@ -30,3 +30,9 @@ pre-commit==4.6.2
 # `scripts/generate_lockfile.py` is a dependency-free equivalent (it drives
 # pip's own resolver) and is what updates requirements.lock / requirements-dev.lock.
 pip-tools==7.6.1
+
+# --- uv -----------------------------------------------------------------------
+# `uv lock` owns backend/uv.lock (the hash-pinned closure of the
+# `[project].dependencies` table in backend/pyproject.toml). CI runs
+# `uv lock --check`, so its tooling is pinned here like every other tool.
+uv==0.12.16
