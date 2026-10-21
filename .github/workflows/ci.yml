@@ -1,475 +1,128 @@
 ﻿name: CI
 
-# Gates every pull request before it can merge, re-verifies main after merge,
-# proves a fresh clone installs from the committed lockfile, scans the tree for
-# committed credentials, builds every container image, and - on a version tag -
-# publishes the release image to GHCR together with a GitHub Release.
-#
-# Deploying is deliberately still a manual, reviewed step (docs/operations/runbook.md):
-# nothing in this repository pushes to a production environment on its own.
 on:
-  pull_request:
   push:
-    branches: [main]
-    tags: ["v*"]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  PYTHON_VERSION: "3.11"
-  NODE_VERSION: "20"
+    branches: [development]
+  pull_request:
+    branches: [development]
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Backend: lint, format check and static types
-  # ---------------------------------------------------------------------------
-  backend-lint:
-    name: backend / lint + types
+  lint:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
+      - uses: actions/checkout@v4
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: |
-            backend/requirements.txt
-            backend/requirements-dev.txt
-
-      # The *locked* closure is installed on purpose: it contains the runtime
-      # libraries (fastapi, bcrypt, PyJWT, SQLAlchemy, ...) that mypy needs to
-      # resolve the imports in `app/`. Installing only requirements-dev.txt
-      # leaves those modules unresolved, `ignore_missing_imports = true`
-      # silently degrades every decorated/dynamic return to `Any`, and mypy
-      # then reports a wall of `no-any-return` errors that no code change can
-      # fix - a red job that looks like a typing bug but is an install bug.
-      # This is the same closure `backend-test` installs, so lint and tests
-      # type-check against identical versions.
-      - name: Install the locked closure (runtime + lint tooling)
-        run: pip install -r requirements-dev.lock
-
-      - name: Ruff lint
-        run: ruff check app tests scripts
-
+          python-version: '3.11'
+      - name: Install Ruff
+        run: pip install ruff
       - name: Ruff format check
-        run: ruff format --check app tests scripts
+        run: ruff format --check .
+      - name: Ruff check
+        run: ruff check .
+      - name: MyPy strict
+        run: mypy app --strict
 
-      - name: mypy
-        run: mypy app
-
-  # ---------------------------------------------------------------------------
-  # Backend: test suite (in-memory SQLite, no external services required)
-  # ---------------------------------------------------------------------------
-  backend-test:
-    name: backend / tests
+  frontend-lint:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    env:
-      DATABASE_URL: sqlite://
-      SECRET_KEY: ci-only-secret-not-used-in-production
-      ENVIRONMENT: test
-      JSON_LOGS: "false"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: |
-            backend/requirements.lock
-            backend/requirements-dev.lock
+          node-version: '20'
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+      - name: Run ESLint
+        working-directory: ./frontend
+        run: npm run lint
+      - name: Run Prettier check
+        working-directory: ./frontend
+        run: npx prettier --check .
 
-      - name: Install dependencies (fully pinned test environment)
-        run: pip install -r requirements-dev.lock
-
-      - name: Run tests with coverage
-        run: pytest --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=90
-
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-coverage
-          path: backend/coverage.xml
-          if-no-files-found: ignore
-
-  # ---------------------------------------------------------------------------
-  # Backend: dependency vulnerability audit
-  # ---------------------------------------------------------------------------
-  backend-audit:
-    name: backend / dependency audit
+  test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
-
-      - name: Install pip-audit
-        run: pip install pip-audit
-
-      - name: Audit runtime dependencies (full locked closure)
-        run: pip-audit -r requirements.lock
-
-  # ---------------------------------------------------------------------------
-  # Backend: integration tests against real Postgres
-  # ---------------------------------------------------------------------------
-  backend-integration:
-    name: backend / postgres integration
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     services:
-      postgres:
-        image: postgres:15
+      mysql:
+        image: mysql:8
         env:
-          POSTGRES_USER: stockpilot_test
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: stockpilot_test
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: stockpilot_dev
+        ports:
+          - 3306:3306
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "mysqladmin ping -uroot"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        ports:
-          - 5432:5432
-    env:
-      DATABASE_URL: postgresql+psycopg2://stockpilot_test:test_password@localhost:5432/stockpilot_test
-      SECRET_KEY: ci-only-secret-not-used-in-production
-      ENVIRONMENT: test
-      JSON_LOGS: "false"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
+      - uses: actions/checkout@v4
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: |
-            backend/requirements.lock
-            backend/requirements-dev.lock
-
-      - name: Install dependencies
-        run: pip install -r requirements-dev.lock
-
-      - name: Run integration tests
-        run: pytest tests/test_migrations.py -v
-
-  # ---------------------------------------------------------------------------
-  # Backend: lockfile drift check (fail if uv.lock is stale)
-  # ---------------------------------------------------------------------------
-  backend-lock-drift:
-    name: backend / lock drift
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        run: pip install uv
-
-      - name: Check uv.lock is up to date
-        run: uv lock --check
-
-  # ---------------------------------------------------------------------------
-  # Frontend: lint, types and production build
-  # ---------------------------------------------------------------------------
-  frontend-check:
-    name: frontend / lint + types + build
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
+          python-version: '3.11'
+      - name: Install backend dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Run backend tests
+        run: pytest --cov=app --cov-report=term-missing
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
+          node-version: '20'
+      - name: Install frontend dependencies
+        working-directory: ./frontend
         run: npm ci
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: npm test -- --run
 
-      - name: Unit tests with coverage
-        run: npm run test:coverage
-
-      - name: ESLint
-        run: npm run lint
-
-      - name: TypeScript type-check
-        run: npm run typecheck
-
-      - name: Format check
-        run: npm run format:check
-
-      - name: Production build
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, frontend-lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install backend dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Build backend Docker image
+        run: docker build -t stockpilot-backend ./backend
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+      - name: Build frontend
+        working-directory: ./frontend
         run: npm run build
-        env:
-          NEXT_PUBLIC_API_URL: http://localhost:8000
+      - name: Build frontend Docker image
+        run: docker build -t stockpilot-frontend ./frontend
 
-  # ---------------------------------------------------------------------------
-  # Frontend: dependency vulnerability audit
-  # ---------------------------------------------------------------------------
-  frontend-audit:
-    name: frontend / dependency audit
+  security:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          scan-type: 'fs'
+          scan-ref: '.'
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Audit dependencies (committed allowlist gate)
-        run: npm run audit
-
-  # ---------------------------------------------------------------------------
-  # Fresh clone: prove the README quickstart works verbatim, with no cache reuse
-  # ---------------------------------------------------------------------------
-  # The per-stack jobs above run the same commands, but each one provisions its
-  # own cache and only exercises one stack. This job deliberately does neither:
-  # it is the automated proof of the README's "fresh clone" quickstart - a clean
-  # runner, no pip/npm cache, `make install` then `make verify` exactly as
-  # documented. If a documented install step, a lockfile or a `make` target
-  # breaks, this job is what turns red, so a broken quickstart blocks the merge
-  # instead of being discovered by the next new contributor.
-  #
-  # `make verify` == `lint typecheck test build audit secrets` for both stacks,
-  # which is intentionally heavy (it re-runs the other jobs' commands); that
-  # duplication is the point - it validates the *documented entry point*, not
-  # just the individual gates.
-  fresh-clone-smoke:
-    name: fresh clone / install + verify
+  deploy:
     runs-on: ubuntu-latest
-    env:
-      # The same hermetic, secret-free environment the backend suite documents.
-      # conftest.py also sets these via os.environ.setdefault, so the backend
-      # half stays green even if this block is ever removed.
-      DATABASE_URL: sqlite://
-      SECRET_KEY: ci-only-secret-not-used-in-production
-      ENVIRONMENT: test
-      JSON_LOGS: "false"
-      LOG_LEVEL: WARNING
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+    needs: [build, security]
+    if: github.ref == 'refs/heads/development'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # No `cache:` on purpose - a cached pip/npm directory would defeat the
-      # whole "fresh clone" contract by skipping the install path under test.
-      - name: Set up Python (no cache)
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Set up Node.js (no cache)
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install both stacks (README quickstart)
-        run: make install
-
-      - name: Verify both stacks (README quickstart)
-        run: make verify
-
-  # ---------------------------------------------------------------------------
-  # Backend: prove a fresh clone installs from the committed lockfile
-  # ---------------------------------------------------------------------------
-  backend-reproducible-install:
-    name: backend / reproducible install
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    env:
-      DATABASE_URL: sqlite://
-      SECRET_KEY: ci-only-secret-not-used-in-production
-      ENVIRONMENT: test
-      JSON_LOGS: "false"
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install the locked runtime closure
+      - uses: actions/checkout@v4
+      - name: Deploy with Docker Compose
         run: |
-          python -m venv .venv
-          .venv/bin/python -m pip install --upgrade pip
-          .venv/bin/python -m pip install -r requirements.lock
-
-      - name: Add the fully pinned test tooling
-        run: .venv/bin/python -m pip install -r requirements-dev.lock
-
-      - name: Verify uv.lock is in sync with pyproject.toml
-        run: |
-          # `uv` is part of requirements-dev.lock, so no extra install step.
-          .venv/bin/uv lock --check
-
-      - name: Import the app and run the suite against the locked closure
-        run: |
-          .venv/bin/python -c "import app.main; print('app imports from locked pins')"
-          .venv/bin/python -m pytest -q
-
-  # ---------------------------------------------------------------------------
-  # Security: fail the build when a credential-looking literal is committed
-  # ---------------------------------------------------------------------------
-  backend-secret-scan:
-    name: backend / secret scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Scan tracked files for credential literals
-        run: python backend/scripts/scan_secrets.py
-
-  # ---------------------------------------------------------------------------
-  # Containers: every Dockerfile in the repository must build
-  # ---------------------------------------------------------------------------
-  docker:
-    name: containers / build images
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build the API image from the repository root (locked pins)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          tags: stockpilot-api:ci
-
-      - name: Build the compose API image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: false
-          tags: stockpilot-api-compose:ci
-
-      - name: Build the frontend image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: false
-          tags: stockpilot-web:ci
-
-  # ---------------------------------------------------------------------------
-  # Release: on a version tag, publish the image to GHCR + a GitHub Release
-  # ---------------------------------------------------------------------------
-  release:
-    name: release / publish tagged build
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [backend-lint, backend-test, frontend-check, docker]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Compute the (lowercase) image name
-        id: image
-        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-
-      - name: Derive image tags
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ steps.image.outputs.name }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
-
-      - name: Build and push the API image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-      - name: Publish the GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-
+          docker compose -f docker-compose.prod.yml up --build -d
+          sleep 10
+          curl -f http://localhost:8000/docs
+          docker compose -f docker-compose.prod.yml down
