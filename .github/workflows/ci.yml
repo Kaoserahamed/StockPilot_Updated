@@ -1,10 +1,8 @@
-﻿name: CI
+name: CI
 
 on:
   push:
-    branches: [development]
-  pull_request:
-    branches: [development]
+    branches: \[main\]    branches: \[main\]
 
 jobs:
   lint:
@@ -126,3 +124,4 @@ jobs:
           sleep 10
           curl -f http://localhost:8000/docs
           docker compose -f docker-compose.prod.yml down
+
